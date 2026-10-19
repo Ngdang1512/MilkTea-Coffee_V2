@@ -1,0 +1,43 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Quản lý hoặc Admin" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+U -> UI: Chọn khách và thao tác
+UI -> API: ID khách + thao tác đã xác nhận
+API -> API: Kiểm tra phiên và quyền quản lý
+alt Khóa hoặc mở khóa
+ API -> DB: crm_dat_trang_thai_khach_hang(...)
+ DB -> DB: UPDATE trạng thái tài khoản
+ DB --> API: Lịch sử vẫn giữ nguyên
+else Xóa vĩnh viễn đã xác nhận
+ API -> DB: crm_xoa_khach_hang(...)
+ group Transaction và CASCADE
+  DB -> DB: Xóa tài khoản và hồ sơ
+  DB -> DB: Xóa phản hồi, phân phối và câu trả lời
+ end
+ DB --> API: Xóa thành công
+end
+API --> UI: Kết quả xử lý
+UI --> U: Cập nhật danh sách khách
+
+@enduml

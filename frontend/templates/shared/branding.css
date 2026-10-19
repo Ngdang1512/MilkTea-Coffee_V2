@@ -1,0 +1,17 @@
+.brand-mark {
+  overflow: hidden;
+  background: #f9f1e4 !important;
+  border: 1px solid rgba(88, 55, 39, 0.15) !important;
+}
+
+.brand-mark::after {
+  display: none !important;
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}

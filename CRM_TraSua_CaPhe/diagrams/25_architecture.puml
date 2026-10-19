@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+left to right direction
+node "Thiết bị người dùng" {
+ component "Web khách hàng" as C
+ component "Web nhân viên và quản lý" as M
+ component "Khu vực Admin riêng" as A
+}
+node "Máy chủ ứng dụng" {
+ component "REST API\nXác thực và phân quyền" as API
+ component "Dịch vụ CRM\nValidation và transaction" as S
+}
+database "PostgreSQL\n11 bảng và 6 view" as DB
+C --> API : HTTPS
+M --> API : HTTPS
+A --> API : HTTPS
+API --> S
+S --> DB : SQL có tham số
+
+@enduml

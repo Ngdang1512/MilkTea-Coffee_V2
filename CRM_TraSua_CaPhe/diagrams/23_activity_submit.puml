@@ -1,0 +1,43 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+start
+:Khách mở khảo sát được nhận;
+if (Tài khoản active và có phân phối?) then (Có)
+ if (Khảo sát mở, còn hạn và chưa nộp?) then (Có)
+  :Hiển thị câu hỏi và lựa chọn;
+  :Khách chọn đáp án và bấm gửi;
+  :Bắt đầu transaction và khóa hàng;
+  :Kiểm tra lại quyền nhận, trạng thái và hạn;
+  if (Mỗi đáp án đúng câu và đủ câu bắt buộc?) then (Có)
+   :Ghi câu trả lời;
+   :Ghi ngày hoàn thành;
+   :Commit;
+   :Hiển thị đã hoàn thành;
+  else (Không)
+   :Rollback và báo lỗi;
+  endif
+ else (Không)
+  :Hiển thị bài đã nộp hoặc không còn mở;
+ endif
+else (Không)
+ :Từ chối truy cập;
+endif
+stop
+
+@enduml

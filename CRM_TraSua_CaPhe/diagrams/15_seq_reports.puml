@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Quản lý hoặc Admin" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+U -> UI: Chọn loại báo cáo hoặc khảo sát
+UI -> API: Yêu cầu dữ liệu thống kê
+API -> API: Kiểm tra quyền quản lý
+alt Khách hàng và hài lòng
+ API -> DB: Đọc view tuổi, sở thích, điểm sao
+else Kết quả khảo sát
+ API -> DB: Đọc view tiến độ và lượt chọn từng câu
+end
+DB -> DB: Tổng hợp số lượng và mẫu số phù hợp
+DB --> API: Số lượng, phần trăm hoặc NULL nếu chưa có dữ liệu
+API --> UI: Dữ liệu biểu đồ
+UI -> UI: Hiển thị mẫu số và chú giải
+UI --> U: Biểu đồ và bảng số liệu
+
+@enduml

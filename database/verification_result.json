@@ -1,0 +1,239 @@
+{
+  "database": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+  "tests": [
+    {
+      "thu_tu": 1,
+      "ket_qua": "PASS",
+      "kiem_tra": "Đủ bảng CRM và thông báo nếu đã bật"
+    },
+    {
+      "thu_tu": 2,
+      "ket_qua": "PASS",
+      "kiem_tra": "Đủ 8 khách hàng demo"
+    },
+    {
+      "thu_tu": 3,
+      "ket_qua": "PASS",
+      "kiem_tra": "Đủ 12 câu trả lời demo"
+    },
+    {
+      "thu_tu": 4,
+      "ket_qua": "PASS",
+      "kiem_tra": "Phân nhóm tuổi đúng ranh giới 18,24,35"
+    },
+    {
+      "thu_tu": 5,
+      "ket_qua": "PASS",
+      "kiem_tra": "Tỷ lệ sở thích đúng mẫu số"
+    },
+    {
+      "thu_tu": 6,
+      "ket_qua": "PASS",
+      "kiem_tra": "Tiến độ 4/7 = 57,14%"
+    },
+    {
+      "thu_tu": 7,
+      "ket_qua": "PASS",
+      "kiem_tra": "Tiến độ 2/3 = 66,67%"
+    },
+    {
+      "thu_tu": 8,
+      "ket_qua": "PASS",
+      "kiem_tra": "Biểu đồ đáp án 50%/25%/25%"
+    },
+    {
+      "thu_tu": 9,
+      "ket_qua": "PASS",
+      "kiem_tra": "Đáp án không được chọn vẫn xuất hiện"
+    },
+    {
+      "thu_tu": 10,
+      "ket_qua": "PASS",
+      "kiem_tra": "Mẫu số bằng 0 trả về NULL"
+    },
+    {
+      "thu_tu": 11,
+      "ket_qua": "PASS",
+      "kiem_tra": "Khóa tài khoản giữ phản hồi"
+    },
+    {
+      "thu_tu": 12,
+      "ket_qua": "PASS",
+      "kiem_tra": "Username không phân biệt hoa/thường"
+    },
+    {
+      "thu_tu": 13,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không cho customer thiếu hồ sơ tại COMMIT"
+    },
+    {
+      "thu_tu": 14,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không gắn hồ sơ khách hàng vào admin"
+    },
+    {
+      "thu_tu": 15,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không nhận năm sinh tương lai"
+    },
+    {
+      "thu_tu": 16,
+      "ket_qua": "PASS",
+      "kiem_tra": "Chặn đánh giá ngoài 1–5 sao"
+    },
+    {
+      "thu_tu": 17,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không phân phối trùng"
+    },
+    {
+      "thu_tu": 18,
+      "ket_qua": "PASS",
+      "kiem_tra": "Câu hỏi phải thuộc đúng khảo sát"
+    },
+    {
+      "thu_tu": 19,
+      "ket_qua": "PASS",
+      "kiem_tra": "Đáp án phải thuộc đúng câu hỏi"
+    },
+    {
+      "thu_tu": 20,
+      "ket_qua": "PASS",
+      "kiem_tra": "Người trả lời phải có phân phối"
+    },
+    {
+      "thu_tu": 21,
+      "ket_qua": "PASS",
+      "kiem_tra": "Chặn nộp thiếu câu bắt buộc"
+    },
+    {
+      "thu_tu": 22,
+      "ket_qua": "PASS",
+      "kiem_tra": "Nộp lỗi không lưu dở câu trả lời"
+    },
+    {
+      "thu_tu": 23,
+      "ket_qua": "PASS",
+      "kiem_tra": "Chặn nộp lần hai"
+    },
+    {
+      "thu_tu": 24,
+      "ket_qua": "PASS",
+      "kiem_tra": "Khách bị khóa không nộp được"
+    },
+    {
+      "thu_tu": 25,
+      "ket_qua": "PASS",
+      "kiem_tra": "Chặn bài nộp vào khảo sát đóng"
+    },
+    {
+      "thu_tu": 26,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không sửa câu trả lời đã nộp"
+    },
+    {
+      "thu_tu": 27,
+      "ket_qua": "PASS",
+      "kiem_tra": "Ghi trực tiếp không được đánh dấu hoàn thành bài thiếu"
+    },
+    {
+      "thu_tu": 28,
+      "ket_qua": "PASS",
+      "kiem_tra": "Chặn lưu dở một câu trả lời qua transaction"
+    },
+    {
+      "thu_tu": 29,
+      "ket_qua": "PASS",
+      "kiem_tra": "Khóa cấu trúc khảo sát sau phát hành"
+    },
+    {
+      "thu_tu": 30,
+      "ket_qua": "PASS",
+      "kiem_tra": "Khóa lựa chọn sau phát hành"
+    },
+    {
+      "thu_tu": 31,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không phát hành đến nhóm rỗng"
+    },
+    {
+      "thu_tu": 32,
+      "ket_qua": "PASS",
+      "kiem_tra": "Phát hành lỗi trả khảo sát về nháp"
+    },
+    {
+      "thu_tu": 33,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không gửi mới đến tài khoản bị khóa"
+    },
+    {
+      "thu_tu": 34,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không phát hành câu hỏi thiếu lựa chọn"
+    },
+    {
+      "thu_tu": 35,
+      "ket_qua": "PASS",
+      "kiem_tra": "Khách hàng không được xóa tài khoản khác"
+    },
+    {
+      "thu_tu": 36,
+      "ket_qua": "PASS",
+      "kiem_tra": "Hàm xóa khách không xóa tài khoản admin"
+    },
+    {
+      "thu_tu": 37,
+      "ket_qua": "PASS",
+      "kiem_tra": "Không xóa món đang có lịch sử phản hồi"
+    },
+    {
+      "thu_tu": 38,
+      "ket_qua": "PASS",
+      "kiem_tra": "Khóa giữ nguyên câu trả lời khảo sát"
+    },
+    {
+      "thu_tu": 39,
+      "ket_qua": "PASS",
+      "kiem_tra": "Loại bỏ ID người nhận lặp trong input"
+    },
+    {
+      "thu_tu": 40,
+      "ket_qua": "PASS",
+      "kiem_tra": "Cho phép bỏ qua câu không bắt buộc"
+    },
+    {
+      "thu_tu": 41,
+      "ket_qua": "PASS",
+      "kiem_tra": "Một câu hỏi chỉ chọn một đáp án"
+    },
+    {
+      "thu_tu": 42,
+      "ket_qua": "PASS",
+      "kiem_tra": "Hàm nộp chặn khách ngoài danh sách"
+    },
+    {
+      "thu_tu": 43,
+      "ket_qua": "PASS",
+      "kiem_tra": "Xóa cứng tài khoản và hồ sơ"
+    },
+    {
+      "thu_tu": 44,
+      "ket_qua": "PASS",
+      "kiem_tra": "Xóa cứng dọn đúng các dữ liệu phụ thuộc"
+    },
+    {
+      "thu_tu": 45,
+      "ket_qua": "PASS",
+      "kiem_tra": "Xóa khách không ảnh hưởng cấu trúc hay bài khách khác"
+    },
+    {
+      "thu_tu": 46,
+      "ket_qua": "PASS",
+      "kiem_tra": "Admin vẫn quản lý được khảo sát khi người tạo đã đổi vai trò"
+    }
+  ],
+  "after_rollback": {
+    "customers": 8,
+    "answers": 12
+  }
+}

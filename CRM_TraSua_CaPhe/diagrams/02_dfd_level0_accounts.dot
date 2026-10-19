@@ -1,0 +1,43 @@
+digraph G {
+graph [rankdir=TB, bgcolor="white", nodesep="0.42", ranksep="0.60", pad="0.25", fontname="DejaVu Sans"];
+node [fontname="DejaVu Sans", fontsize=16, color="#52687A", penwidth=1.3, style="filled", fillcolor="#F5F8FA", margin="0.14,0.10"];
+edge [fontname="DejaVu Sans", fontsize=12, color="#536D7F", arrowsize=0.7];
+
+K [shape=box,label="Khách hàng"]; N [shape=box,label="Nhân sự CRM"]; A [shape=box,label="Quản trị hệ thống"];
+P1 [shape=ellipse,label="1.0\nQuản lý tài khoản"];
+P2 [shape=ellipse,label="2.0\nQuản lý khách hàng"];
+P6 [shape=ellipse,label="6.0\nQuản lý danh mục"];
+D1 [shape=record,label="D1 | Tài khoản"];
+D2 [shape=record,label="D2 | Hồ sơ khách hàng"];
+D3 [shape=record,label="D3 | Danh mục"];
+D4 [shape=record,label="D4 | Phản hồi"];
+D6 [shape=record,label="D6 | Phân phối"];
+D7 [shape=record,label="D7 | Câu trả lời"];
+K -> P1 [label="F01"];
+P1 -> K [label="F02"];
+N -> P1 [label="F03"];
+P1 -> N [label="F04"];
+A -> P1 [label="F05"];
+P1 -> A [label="F06"];
+P1 -> D1 [label="F07"];
+D1 -> P1 [label="F08"];
+P1 -> P2 [label="F09"];
+P2 -> P1 [label="F10"];
+K -> P2 [label="F11"];
+P2 -> K [label="F12"];
+N -> P2 [label="F13"];
+P2 -> N [label="F14"];
+P2 -> D1 [label="F15"];
+D1 -> P2 [label="F16"];
+P2 -> D2 [label="F17"];
+D2 -> P2 [label="F18"];
+D3 -> P2 [label="F19"];
+P2 -> D4 [label="F20"];
+P2 -> D6 [label="F21"];
+P2 -> D7 [label="F22"];
+A -> P6 [label="F23"];
+P6 -> A [label="F24"];
+P6 -> D3 [label="F25"];
+D3 -> P6 [label="F26"];
+
+}

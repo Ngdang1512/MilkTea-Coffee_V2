@@ -1,0 +1,222 @@
+Project CRM_TraSua_CaPhe {
+  database_type: 'PostgreSQL'
+  Note: 'CRM chuỗi trà sữa, cà phê. 10 bảng; khảo sát trắc nghiệm chọn một đáp án. Quy tắc liên bảng bổ sung trong 02_business_rules.sql.'
+}
+
+Enum vai_tro {
+  admin
+  manager
+  staff
+  customer
+}
+
+Enum trang_thai_tai_khoan {
+  active
+  locked
+}
+
+Enum gioi_tinh {
+  nam
+  nu
+  khac
+  khong_cung_cap
+}
+
+Enum trang_thai_phan_hoi {
+  moi
+  da_xem
+  da_tiep_thu
+}
+
+Enum trang_thai_khao_sat {
+  nhap
+  dang_mo
+  da_dong
+}
+
+Table tai_khoan {
+  id bigint [pk, increment]
+  ten_dang_nhap varchar(100) [not null, unique]
+  mat_khau_hash varchar(255) [not null, note: 'Băm mật khẩu tại backend; không lưu mật khẩu gốc']
+  vai_tro vai_tro [not null, default: 'customer']
+  trang_thai trang_thai_tai_khoan [not null, default: 'active']
+  nguoi_tao_id bigint [note: 'NULL khi tự đăng ký hoặc tạo admin ban đầu']
+  ngay_tao timestamptz [not null, default: `now()`]
+  ngay_cap_nhat timestamptz [not null, default: `now()`]
+  checks {
+    `length(trim(ten_dang_nhap)) >= 3` [name: 'ck_tai_khoan_username']
+    `length(mat_khau_hash) >= 20` [name: 'ck_tai_khoan_hash']
+  }
+  indexes {
+    (vai_tro, trang_thai)
+  }
+  Note: 'Tên đăng nhập được trigger chuyển thành chữ thường và bỏ khoảng trắng hai đầu. Vai trò dùng để phân quyền ở backend.'
+}
+
+Table nhom_so_thich {
+  id bigint [pk, increment]
+  ten_nhom varchar(100) [not null, unique]
+  mo_ta text
+  dang_su_dung boolean [not null, default: true]
+  checks {
+    `length(trim(ten_nhom)) > 0` [name: 'ck_so_thich_ten']
+  }
+  Note: 'Ví dụ: Trà sữa truyền thống; Cà phê muối; Trà trái cây nhiệt đới; Ít ngọt/Healthy. Đây là nhóm sở thích, không phải món cụ thể.'
+}
+
+Table khach_hang {
+  tai_khoan_id bigint [pk, not null]
+  ma_thanh_vien varchar(30) [not null, unique]
+  ho_ten varchar(150) [not null]
+  nam_sinh smallint [not null, note: 'Từ 1900 đến năm hiện tại; trigger kiểm tra cận trên']
+  gioi_tinh gioi_tinh [not null, default: 'khong_cung_cap']
+  so_thich_id bigint [not null]
+  ngay_cap_nhat timestamptz [not null, default: `now()`]
+  checks {
+    `length(trim(ho_ten)) > 0` [name: 'ck_khach_hang_ho_ten']
+    `length(trim(ma_thanh_vien)) > 0` [name: 'ck_khach_hang_ma']
+    `nam_sinh >= 1900` [name: 'ck_khach_hang_nam_sinh']
+  }
+  indexes {
+    so_thich_id
+    nam_sinh
+  }
+  Note: 'Mỗi tài khoản customer có đúng một hồ sơ; kiểm tra cuối transaction. Mỗi khách có một sở thích mặc định theo đề.'
+}
+
+Table do_uong {
+  id bigint [pk, increment]
+  ma_do_uong varchar(30) [not null, unique]
+  ten_do_uong varchar(150) [not null]
+  mo_ta text
+  dang_kinh_doanh boolean [not null, default: true]
+  ngay_tao timestamptz [not null, default: `now()`]
+  checks {
+    `length(trim(ten_do_uong)) > 0` [name: 'ck_do_uong_ten']
+  }
+  Note: 'Danh mục để chọn khi phản hồi; chưa bao gồm đơn hàng, giá bán hoặc tồn kho.'
+}
+
+Table phan_hoi {
+  id bigint [pk, increment]
+  khach_hang_id bigint [not null]
+  do_uong_id bigint [not null]
+  so_sao smallint [not null]
+  noi_dung text [not null]
+  trang_thai trang_thai_phan_hoi [not null, default: 'moi']
+  nguoi_xu_ly_id bigint
+  ngay_xu_ly timestamptz
+  ngay_gui timestamptz [not null, default: `now()`]
+  checks {
+    `so_sao BETWEEN 1 AND 5` [name: 'ck_phan_hoi_so_sao']
+    `length(trim(noi_dung)) > 0` [name: 'ck_phan_hoi_noi_dung']
+    `(trang_thai = 'moi' AND ngay_xu_ly IS NULL AND nguoi_xu_ly_id IS NULL) OR (trang_thai <> 'moi' AND ngay_xu_ly IS NOT NULL)` [name: 'ck_phan_hoi_xu_ly']
+    `ngay_xu_ly IS NULL OR ngay_xu_ly >= ngay_gui` [name: 'ck_phan_hoi_thoi_gian']
+  }
+  indexes {
+    (trang_thai, ngay_gui)
+    (khach_hang_id, ngay_gui)
+    (do_uong_id, ngay_gui)
+  }
+}
+
+Table khao_sat {
+  id bigint [pk, increment]
+  tieu_de varchar(255) [not null]
+  mo_ta text
+  trang_thai trang_thai_khao_sat [not null, default: 'nhap']
+  nguoi_tao_id bigint [not null]
+  ngay_tao timestamptz [not null, default: `now()`]
+  ngay_phat_hanh timestamptz
+  ngay_ket_thuc timestamptz [note: 'NULL nghĩa là chưa đặt hạn; vẫn có thể đóng thủ công']
+  da_an boolean [not null, default: false, note: 'Ẩn mềm; không xóa dữ liệu và có thể khôi phục']
+  checks {
+    `length(trim(tieu_de)) > 0` [name: 'ck_khao_sat_tieu_de']
+    `(trang_thai = 'nhap' AND ngay_phat_hanh IS NULL) OR (trang_thai <> 'nhap' AND ngay_phat_hanh IS NOT NULL)` [name: 'ck_khao_sat_phat_hanh']
+    `ngay_ket_thuc IS NULL OR ngay_phat_hanh IS NULL OR ngay_ket_thuc > ngay_phat_hanh` [name: 'ck_khao_sat_thoi_gian']
+  }
+  indexes {
+    nguoi_tao_id
+    (trang_thai, ngay_ket_thuc)
+  }
+  Note: 'Luồng trạng thái: nhap -> dang_mo -> da_dong. Hết hạn cũng chặn nộp dù chưa chuyển trạng thái. Cấu trúc câu hỏi được sửa khi chưa có phản hồi hoàn thành.'
+}
+
+Table cau_hoi {
+  id bigint [pk, increment]
+  khao_sat_id bigint [not null]
+  noi_dung text [not null]
+  thu_tu int [not null]
+  bat_buoc boolean [not null, default: true]
+  checks {
+    `thu_tu > 0` [name: 'ck_cau_hoi_thu_tu']
+    `length(trim(noi_dung)) > 0` [name: 'ck_cau_hoi_noi_dung']
+  }
+  indexes {
+    (khao_sat_id, thu_tu) [unique]
+    (id, khao_sat_id) [unique]
+  }
+  Note: 'Mỗi câu là trắc nghiệm chọn một; tối thiểu hai lựa chọn khi phát hành.'
+}
+
+Table lua_chon {
+  id bigint [pk, increment]
+  cau_hoi_id bigint [not null]
+  noi_dung varchar(500) [not null]
+  thu_tu int [not null]
+  checks {
+    `thu_tu > 0` [name: 'ck_lua_chon_thu_tu']
+    `length(trim(noi_dung)) > 0` [name: 'ck_lua_chon_noi_dung']
+  }
+  indexes {
+    (cau_hoi_id, thu_tu) [unique]
+    (id, cau_hoi_id) [unique]
+  }
+}
+
+Table phan_phoi_khao_sat {
+  khao_sat_id bigint [not null]
+  khach_hang_id bigint [not null]
+  ngay_gui timestamptz [not null, default: `now()`]
+  ngay_hoan_thanh timestamptz [note: 'NULL: chưa nộp; có giá trị: đã nộp. Không lưu nháp câu trả lời.']
+  checks {
+    `ngay_hoan_thanh IS NULL OR ngay_hoan_thanh >= ngay_gui` [name: 'ck_phan_phoi_thoi_gian']
+  }
+  indexes {
+    (khao_sat_id, khach_hang_id) [pk]
+    (khach_hang_id, ngay_hoan_thanh)
+  }
+  Note: 'Danh sách người nhận cố định tại lần phát hành. Khách đăng ký sau không tự được thêm. Khách bị khóa sau khi nhận vẫn nằm trong mẫu số.'
+}
+
+Table cau_tra_loi {
+  khao_sat_id bigint [not null]
+  khach_hang_id bigint [not null]
+  cau_hoi_id bigint [not null]
+  lua_chon_id bigint [not null]
+  indexes {
+    (khao_sat_id, khach_hang_id, cau_hoi_id) [pk]
+    (cau_hoi_id, khao_sat_id)
+    (lua_chon_id, cau_hoi_id)
+  }
+  Note: 'Ba khóa ngoại ghép bảo đảm đúng người nhận, đúng khảo sát và đúng đáp án của câu hỏi.'
+}
+
+// KHÓA NGOẠI. Với quan hệ một-một dạng này, vế phải là FK.
+Ref: tai_khoan.id - khach_hang.tai_khoan_id [delete: cascade]
+Ref: tai_khoan.nguoi_tao_id > tai_khoan.id [delete: set null]
+Ref: khach_hang.so_thich_id > nhom_so_thich.id [delete: restrict]
+
+Ref: phan_hoi.khach_hang_id > khach_hang.tai_khoan_id [delete: cascade]
+Ref: phan_hoi.do_uong_id > do_uong.id [delete: restrict]
+Ref: phan_hoi.nguoi_xu_ly_id > tai_khoan.id [delete: set null]
+
+Ref: khao_sat.nguoi_tao_id > tai_khoan.id [delete: restrict]
+Ref: cau_hoi.khao_sat_id > khao_sat.id [delete: restrict]
+Ref: lua_chon.cau_hoi_id > cau_hoi.id [delete: restrict]
+Ref: phan_phoi_khao_sat.khao_sat_id > khao_sat.id [delete: restrict]
+Ref: phan_phoi_khao_sat.khach_hang_id > khach_hang.tai_khoan_id [delete: cascade]
+
+Ref: cau_tra_loi.(khao_sat_id, khach_hang_id) > phan_phoi_khao_sat.(khao_sat_id, khach_hang_id) [delete: cascade]
+Ref: cau_tra_loi.(cau_hoi_id, khao_sat_id) > cau_hoi.(id, khao_sat_id) [delete: restrict]
+Ref: cau_tra_loi.(lua_chon_id, cau_hoi_id) > lua_chon.(id, cau_hoi_id) [delete: restrict]

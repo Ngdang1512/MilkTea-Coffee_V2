@@ -1,0 +1,43 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Khách hàng hoặc Nhân sự CRM" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+alt Khách gửi phản hồi
+ U -> UI: Chọn món, chi nhánh, sao và nội dung
+ UI -> API: Yêu cầu gửi phản hồi
+ API -> API: Lấy ID khách từ phiên; kiểm tra active
+ API -> DB: INSERT phan_hoi với trạng thái moi
+ DB -> DB: Kiểm tra FK, sao 1 đến 5, nội dung
+ DB --> API: Mã phản hồi
+ API --> UI: Xác nhận đã nhận
+else Nhân sự tiếp nhận
+ U -> UI: Mở danh sách mới và chọn phản hồi
+ UI -> API: Đánh dấu đã xem hoặc đã tiếp thu
+ API -> DB: crm_xu_ly_phan_hoi(actor, id, trạng thái)
+ DB -> DB: Ghi người xử lý và thời điểm
+ DB --> API: Kết quả cập nhật
+ API --> UI: Trạng thái mới
+end
+UI --> U: Hiển thị kết quả
+
+@enduml

@@ -1,0 +1,56 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+hide circle
+entity chi_nhanh {
+ * id : bigint <<PK>>
+ --
+ ma_chi_nhanh : varchar <<UQ>>
+ ten_chi_nhanh : varchar
+}
+entity tai_khoan {
+ * id : bigint <<PK>>
+ --
+ ten_dang_nhap : varchar <<UQ>>
+ mat_khau_hash : varchar
+ vai_tro : enum
+ trang_thai : enum
+ chi_nhanh_id : bigint <<FK nullable>>
+ nguoi_tao_id : bigint <<FK nullable>>
+}
+entity khach_hang {
+ * tai_khoan_id : bigint <<PK FK>>
+ --
+ ma_thanh_vien : varchar <<UQ>>
+ ho_ten : varchar
+ nam_sinh : smallint
+ gioi_tinh : enum
+ so_thich_id : bigint <<FK>>
+}
+entity nhom_so_thich {
+ * id : bigint <<PK>>
+ --
+ ten_nhom : varchar <<UQ>>
+ dang_su_dung : boolean
+}
+chi_nhanh |o--o{ tai_khoan : nơi làm việc
+tai_khoan ||--o| khach_hang : hồ sơ
+nhom_so_thich ||--o{ khach_hang : sở thích mặc định
+tai_khoan |o--o{ tai_khoan : người tạo
+
+@enduml

@@ -1,0 +1,65 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+hide circle
+entity khao_sat {
+ * id : bigint <<PK>>
+ --
+ tieu_de : varchar
+ trang_thai : enum
+ nguoi_tao_id : bigint <<FK>>
+ ngay_phat_hanh : timestamptz
+ ngay_ket_thuc : timestamptz
+}
+entity cau_hoi {
+ * id : bigint <<PK>>
+ --
+ khao_sat_id : bigint <<FK>>
+ noi_dung : text
+ thu_tu : int
+ bat_buoc : boolean
+}
+entity lua_chon {
+ * id : bigint <<PK>>
+ --
+ cau_hoi_id : bigint <<FK>>
+ noi_dung : varchar
+ thu_tu : int
+}
+entity phan_phoi_khao_sat {
+ * khao_sat_id : bigint <<PK FK>>
+ * khach_hang_id : bigint <<PK FK>>
+ --
+ ngay_gui : timestamptz
+ ngay_hoan_thanh : timestamptz
+}
+entity cau_tra_loi {
+ * khao_sat_id : bigint <<PK FK>>
+ * khach_hang_id : bigint <<PK FK>>
+ * cau_hoi_id : bigint <<PK FK>>
+ --
+ lua_chon_id : bigint <<FK>>
+}
+khao_sat ||--o{ cau_hoi : gồm
+cau_hoi ||--o{ lua_chon : có
+khao_sat ||--o{ phan_phoi_khao_sat : gửi
+phan_phoi_khao_sat ||--o{ cau_tra_loi : bài làm
+cau_hoi ||--o{ cau_tra_loi : đúng khảo sát
+lua_chon ||--o{ cau_tra_loi : đáp án được chọn
+
+@enduml

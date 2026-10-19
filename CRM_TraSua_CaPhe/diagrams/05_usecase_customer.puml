@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+left to right direction
+actor "Khách hàng" as K
+rectangle "CRM dành cho khách hàng" {
+  usecase "UC01\nĐăng ký tài khoản" as U1
+  usecase "UC02\nĐăng nhập" as U2
+  usecase "UC03\nChỉnh sửa hồ sơ" as U3
+  usecase "UC04\nGửi phản hồi đồ uống" as U4
+  usecase "UC05\nXem khảo sát được nhận" as U5
+  usecase "UC06\nNộp bài khảo sát" as U6
+}
+K -- U1
+K -- U2
+K -- U3
+K -- U4
+K -- U5
+K -- U6
+
+@enduml

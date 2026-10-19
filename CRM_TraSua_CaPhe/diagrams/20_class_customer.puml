@@ -1,0 +1,62 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+class TaiKhoan {
+ -id: Long
+ -tenDangNhap: String
+ -matKhauHash: String
+ -vaiTro: VaiTro
+ -trangThai: TrangThaiTaiKhoan
+ +coTheDangNhap(): Boolean
+}
+class KhachHang {
+ -maThanhVien: String
+ -hoTen: String
+ -namSinh: Short
+ -gioiTinh: GioiTinh
+ +capNhatHoSo()
+ +tinhTuoiUocTinh(nam): Integer
+}
+class NhomSoThich {
+ -tenNhom: String
+}
+class ChiNhanh {
+ -maChiNhanh: String
+ -tenChiNhanh: String
+}
+class DoUong {
+ -maDoUong: String
+ -tenDoUong: String
+ -dangKinhDoanh: Boolean
+}
+class PhanHoi {
+ -soSao: Short
+ -noiDung: String
+ -trangThai: TrangThaiPhanHoi
+ +danhDauDaXem()
+ +danhDauDaTiepThu()
+}
+TaiKhoan "1" -- "0..1" KhachHang : hồ sơ
+NhomSoThich "1" -- "0..*" KhachHang
+ChiNhanh "0..1" -- "0..*" TaiKhoan : làm việc
+KhachHang "1" -- "0..*" PhanHoi
+DoUong "1" -- "0..*" PhanHoi
+ChiNhanh "0..1" -- "0..*" PhanHoi
+TaiKhoan "0..1" -- "0..*" PhanHoi : xử lý
+
+@enduml

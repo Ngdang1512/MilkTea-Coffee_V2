@@ -1,0 +1,47 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Khách hàng" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+U -> UI: Mở mục khảo sát dành cho bạn
+UI -> API: Yêu cầu khảo sát chưa hoàn thành
+API -> DB: Đọc phân phối và cấu trúc đang mở
+DB --> API: Danh sách, câu hỏi và đáp án
+API --> UI: Bài khảo sát
+U -> UI: Chọn đáp án và bấm gửi
+UI -> API: Mảng câu hỏi và lựa chọn
+API -> DB: crm_nop_khao_sat(ID phiên, khảo sát, JSON)
+group Một transaction
+ DB -> DB: Kiểm tra active, hạn và người nhận
+ DB -> DB: Khóa khảo sát và hàng phân phối
+ alt Chưa nộp và trả lời hợp lệ
+  DB -> DB: Ghi câu trả lời; kiểm tra đủ câu bắt buộc
+  DB -> DB: Ghi ngày hoàn thành; COMMIT
+ else Sai đáp án, thiếu câu hoặc đã nộp
+  DB -> DB: ROLLBACK
+ end
+end
+DB --> API: Thành công hoặc lỗi
+API --> UI: Trạng thái bài khảo sát
+UI --> U: Xác nhận kết quả
+
+@enduml

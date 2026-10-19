@@ -1,0 +1,43 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Khách hàng hoặc Nhân viên" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+U -> UI: Nhập tên đăng nhập, mật khẩu và hồ sơ
+UI -> API: Yêu cầu tạo khách hàng
+API -> API: Kiểm tra dữ liệu; nếu tại quầy kiểm tra quyền
+API -> API: Băm mật khẩu với salt
+group Một transaction
+ API -> DB: BEGIN; INSERT tai_khoan
+ DB --> API: ID tài khoản mới
+ API -> DB: INSERT khach_hang với cùng ID
+ alt Dữ liệu hợp lệ và username duy nhất
+  API -> DB: COMMIT
+  DB --> API: Hồ sơ hợp lệ cuối transaction
+ else Trùng username hoặc hồ sơ lỗi
+  API -> DB: ROLLBACK
+ end
+end
+API --> UI: Mã thành viên hoặc lỗi cụ thể
+UI --> U: Hiển thị kết quả
+
+@enduml

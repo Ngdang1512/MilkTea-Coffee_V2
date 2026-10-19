@@ -1,0 +1,54 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+hide circle
+entity khach_hang {
+ * tai_khoan_id : bigint <<PK FK>>
+}
+entity tai_khoan {
+ * id : bigint <<PK>>
+}
+entity chi_nhanh {
+ * id : bigint <<PK>>
+}
+entity do_uong {
+ * id : bigint <<PK>>
+ --
+ ma_do_uong : varchar <<UQ>>
+ ten_do_uong : varchar
+ dang_kinh_doanh : boolean
+}
+entity phan_hoi {
+ * id : bigint <<PK>>
+ --
+ khach_hang_id : bigint <<FK>>
+ do_uong_id : bigint <<FK>>
+ chi_nhanh_id : bigint <<FK nullable>>
+ so_sao : smallint
+ noi_dung : text
+ trang_thai : enum
+ nguoi_xu_ly_id : bigint <<FK nullable>>
+ ngay_gui : timestamptz
+ ngay_xu_ly : timestamptz
+}
+khach_hang ||--o{ phan_hoi : gửi
+do_uong ||--o{ phan_hoi : được đánh giá
+chi_nhanh |o--o{ phan_hoi : nơi trải nghiệm
+tai_khoan |o--o{ phan_hoi : người xử lý
+
+@enduml

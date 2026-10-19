@@ -1,0 +1,61 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+class AuthService <<service>> {
+ +dangKy(dto): KhachHang
+ +dangNhap(username, password): Session
+ +kiemTraQuyen(session, permission)
+}
+class KhachHangService <<service>> {
+ +themTaiQuay(actor, dto)
+ +capNhatHoSo(customer, dto)
+ +timKiem(criteria)
+ +datTrangThai(actor, customer, status)
+ +xoa(actor, customer)
+}
+class PhanHoiService <<service>> {
+ +gui(customer, dto)
+ +tiepNhan(actor, feedback, status)
+}
+class KhaoSatService <<service>> {
+ +luuNhap(actor, dto)
+ +phatHanh(actor, survey, targets)
+ +layBai(customer, survey)
+ +nopBai(customer, survey, answers)
+ +dong(actor, survey)
+}
+class BaoCaoService <<service>> {
+ +thongKeKhachHang()
+ +thongKeHaiLong()
+ +thongKeKhaoSat(survey)
+}
+class Repository <<data access>> {
+ +query(sql, parameters)
+ +transaction(callback)
+}
+KhachHangService ..> AuthService
+PhanHoiService ..> AuthService
+KhaoSatService ..> AuthService
+BaoCaoService ..> AuthService
+AuthService ..> Repository
+KhachHangService ..> Repository
+PhanHoiService ..> Repository
+KhaoSatService ..> Repository
+BaoCaoService ..> Repository
+
+@enduml

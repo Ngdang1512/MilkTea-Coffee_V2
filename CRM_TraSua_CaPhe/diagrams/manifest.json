@@ -1,0 +1,647 @@
+[
+  {
+    "name": "01_dfd_context",
+    "title": "DFD ngữ cảnh",
+    "description": "Tiến trình duy nhất là toàn hệ thống. Quản trị viên còn có quyền của quản lý; các luồng CRM dùng chung được thể hiện qua tác nhân Nhân sự CRM. Mức ngữ cảnh không vẽ kho dữ liệu.",
+    "kind": "dot",
+    "flows": [
+      {
+        "code": "F01",
+        "from": "K",
+        "to": "P",
+        "data": "Thông tin đăng ký và đăng nhập; Hồ sơ cập nhật và phản hồi; Yêu cầu khảo sát và bài làm"
+      },
+      {
+        "code": "F02",
+        "from": "P",
+        "to": "K",
+        "data": "Kết quả xác thực và cập nhật; Xác nhận phản hồi; Khảo sát được nhận và kết quả nộp"
+      },
+      {
+        "code": "F03",
+        "from": "N",
+        "to": "P",
+        "data": "Thông tin khách tại quầy; Yêu cầu tìm, khóa và xóa khách; Xử lý phản hồi, cấu hình khảo sát; Tiêu chí xem báo cáo"
+      },
+      {
+        "code": "F04",
+        "from": "P",
+        "to": "N",
+        "data": "Hồ sơ và kết quả xử lý; Danh sách phản hồi; Tình trạng phát hành và báo cáo"
+      },
+      {
+        "code": "F05",
+        "from": "A",
+        "to": "P",
+        "data": "Tài khoản nội bộ và vai trò; Danh mục chi nhánh, sở thích, đồ uống"
+      },
+      {
+        "code": "F06",
+        "from": "P",
+        "to": "A",
+        "data": "Danh sách tài khoản và danh mục; Kết quả quản trị"
+      }
+    ]
+  },
+  {
+    "name": "02_dfd_level0_accounts",
+    "title": "DFD mức 0 phần tài khoản và khách hàng",
+    "description": "Đây là phần A của cùng một DFD mức 0. P1, P2, P6 và các kho D1 đến D7 có cùng định nghĩa trên mọi hình. Xóa khách đi kèm xóa lịch sử đúng phạm vi; khóa tài khoản chỉ sửa D1.",
+    "kind": "dot",
+    "flows": [
+      {
+        "code": "F01",
+        "from": "K",
+        "to": "P1",
+        "data": "Đăng ký / đăng nhập"
+      },
+      {
+        "code": "F02",
+        "from": "P1",
+        "to": "K",
+        "data": "Kết quả xác thực"
+      },
+      {
+        "code": "F03",
+        "from": "N",
+        "to": "P1",
+        "data": "Thông tin đăng nhập"
+      },
+      {
+        "code": "F04",
+        "from": "P1",
+        "to": "N",
+        "data": "Kết quả xác thực"
+      },
+      {
+        "code": "F05",
+        "from": "A",
+        "to": "P1",
+        "data": "Đăng nhập / tài khoản / vai trò"
+      },
+      {
+        "code": "F06",
+        "from": "P1",
+        "to": "A",
+        "data": "Kết quả / danh sách tài khoản"
+      },
+      {
+        "code": "F07",
+        "from": "P1",
+        "to": "D1",
+        "data": "Tài khoản mới / thay đổi quyền"
+      },
+      {
+        "code": "F08",
+        "from": "D1",
+        "to": "P1",
+        "data": "Thông tin xác thực / trạng thái"
+      },
+      {
+        "code": "F09",
+        "from": "P1",
+        "to": "P2",
+        "data": "Hồ sơ đăng ký + ID tài khoản"
+      },
+      {
+        "code": "F10",
+        "from": "P2",
+        "to": "P1",
+        "data": "Kết quả tạo hồ sơ"
+      },
+      {
+        "code": "F11",
+        "from": "K",
+        "to": "P2",
+        "data": "Hồ sơ cá nhân cập nhật"
+      },
+      {
+        "code": "F12",
+        "from": "P2",
+        "to": "K",
+        "data": "Kết quả cập nhật"
+      },
+      {
+        "code": "F13",
+        "from": "N",
+        "to": "P2",
+        "data": "Thêm / tìm / khóa / xóa khách"
+      },
+      {
+        "code": "F14",
+        "from": "P2",
+        "to": "N",
+        "data": "Hồ sơ và kết quả xử lý"
+      },
+      {
+        "code": "F15",
+        "from": "P2",
+        "to": "D1",
+        "data": "Tài khoản tại quầy / khóa / xóa"
+      },
+      {
+        "code": "F16",
+        "from": "D1",
+        "to": "P2",
+        "data": "Trạng thái tài khoản"
+      },
+      {
+        "code": "F17",
+        "from": "P2",
+        "to": "D2",
+        "data": "Hồ sơ mới / sửa / xóa"
+      },
+      {
+        "code": "F18",
+        "from": "D2",
+        "to": "P2",
+        "data": "Hồ sơ khách hàng"
+      },
+      {
+        "code": "F19",
+        "from": "D3",
+        "to": "P2",
+        "data": "Nhóm sở thích hợp lệ"
+      },
+      {
+        "code": "F20",
+        "from": "P2",
+        "to": "D4",
+        "data": "Xóa phản hồi theo khách"
+      },
+      {
+        "code": "F21",
+        "from": "P2",
+        "to": "D6",
+        "data": "Xóa phân phối theo khách"
+      },
+      {
+        "code": "F22",
+        "from": "P2",
+        "to": "D7",
+        "data": "Xóa bài làm theo khách"
+      },
+      {
+        "code": "F23",
+        "from": "A",
+        "to": "P6",
+        "data": "Dữ liệu / yêu cầu danh mục"
+      },
+      {
+        "code": "F24",
+        "from": "P6",
+        "to": "A",
+        "data": "Danh mục và kết quả"
+      },
+      {
+        "code": "F25",
+        "from": "P6",
+        "to": "D3",
+        "data": "Danh mục cập nhật"
+      },
+      {
+        "code": "F26",
+        "from": "D3",
+        "to": "P6",
+        "data": "Danh mục hiện tại"
+      }
+    ]
+  },
+  {
+    "name": "03_dfd_level0_crm",
+    "title": "DFD mức 0 phần chăm sóc và báo cáo",
+    "description": "Phần B cùng cấp với phần A. Không có luồng trực tiếp tác nhân đến kho hoặc kho đến kho. P5 chỉ đọc dữ liệu để tổng hợp; báo cáo không được lưu thành bảng nghiệp vụ riêng.",
+    "kind": "dot",
+    "flows": [
+      {
+        "code": "F01",
+        "from": "K",
+        "to": "P3",
+        "data": "Món, sao, nội dung, chi nhánh"
+      },
+      {
+        "code": "F02",
+        "from": "P3",
+        "to": "K",
+        "data": "Xác nhận phản hồi"
+      },
+      {
+        "code": "F03",
+        "from": "N",
+        "to": "P3",
+        "data": "Yêu cầu danh sách / xử lý"
+      },
+      {
+        "code": "F04",
+        "from": "P3",
+        "to": "N",
+        "data": "Phản hồi / kết quả xử lý"
+      },
+      {
+        "code": "F05",
+        "from": "D3",
+        "to": "P3",
+        "data": "Đồ uống và chi nhánh"
+      },
+      {
+        "code": "F06",
+        "from": "D4",
+        "to": "P3",
+        "data": "Phản hồi hiện có"
+      },
+      {
+        "code": "F07",
+        "from": "P3",
+        "to": "D4",
+        "data": "Phản hồi mới / trạng thái xử lý"
+      },
+      {
+        "code": "F08",
+        "from": "N",
+        "to": "P4",
+        "data": "Nội dung khảo sát / người nhận; Yêu cầu phát hành / đóng"
+      },
+      {
+        "code": "F09",
+        "from": "P4",
+        "to": "N",
+        "data": "Kết quả soạn / phát hành / đóng"
+      },
+      {
+        "code": "F10",
+        "from": "K",
+        "to": "P4",
+        "data": "Yêu cầu danh sách / mở bài / bài làm"
+      },
+      {
+        "code": "F11",
+        "from": "P4",
+        "to": "K",
+        "data": "Khảo sát được nhận / câu hỏi; Kết quả nộp bài"
+      },
+      {
+        "code": "F12",
+        "from": "D1",
+        "to": "P4",
+        "data": "Tài khoản khách active"
+      },
+      {
+        "code": "F13",
+        "from": "D2",
+        "to": "P4",
+        "data": "Khách hàng mục tiêu"
+      },
+      {
+        "code": "F14",
+        "from": "D5",
+        "to": "P4",
+        "data": "Câu hỏi / lựa chọn / thời hạn"
+      },
+      {
+        "code": "F15",
+        "from": "P4",
+        "to": "D5",
+        "data": "Cấu trúc và trạng thái khảo sát"
+      },
+      {
+        "code": "F16",
+        "from": "D6",
+        "to": "P4",
+        "data": "Quyền nhận / trạng thái bài"
+      },
+      {
+        "code": "F17",
+        "from": "P4",
+        "to": "D6",
+        "data": "Người nhận / thời điểm hoàn thành"
+      },
+      {
+        "code": "F18",
+        "from": "D7",
+        "to": "P4",
+        "data": "Các câu đã trả lời"
+      },
+      {
+        "code": "F19",
+        "from": "P4",
+        "to": "D7",
+        "data": "Đáp án bài nộp"
+      },
+      {
+        "code": "F20",
+        "from": "N",
+        "to": "P5",
+        "data": "Tiêu chí báo cáo"
+      },
+      {
+        "code": "F21",
+        "from": "P5",
+        "to": "N",
+        "data": "Tuổi, sở thích, hài lòng; Tiến độ và kết quả khảo sát"
+      },
+      {
+        "code": "F22",
+        "from": "D2",
+        "to": "P5",
+        "data": "Năm sinh / sở thích"
+      },
+      {
+        "code": "F23",
+        "from": "D3",
+        "to": "P5",
+        "data": "Nhãn nhóm và món"
+      },
+      {
+        "code": "F24",
+        "from": "D4",
+        "to": "P5",
+        "data": "Điểm sao / phản hồi"
+      },
+      {
+        "code": "F25",
+        "from": "D5",
+        "to": "P5",
+        "data": "Câu hỏi và đáp án"
+      },
+      {
+        "code": "F26",
+        "from": "D6",
+        "to": "P5",
+        "data": "Số người nhận / hoàn thành"
+      },
+      {
+        "code": "F27",
+        "from": "D7",
+        "to": "P5",
+        "data": "Lượt chọn đáp án"
+      }
+    ]
+  },
+  {
+    "name": "04_dfd_level1_survey",
+    "title": "DFD mức 1 của tiến trình khảo sát",
+    "description": "Các luồng biên được bảo toàn so với P4 ở mức 0. Kiểm tra xác thực là tiền điều kiện chung. Việc ghi D7 và cập nhật D6 nằm trong cùng transaction.",
+    "kind": "dot",
+    "flows": [
+      {
+        "code": "F01",
+        "from": "N",
+        "to": "P41",
+        "data": "Tiêu đề, câu hỏi, đáp án; Yêu cầu đóng"
+      },
+      {
+        "code": "F02",
+        "from": "P41",
+        "to": "N",
+        "data": "Kết quả soạn / đóng"
+      },
+      {
+        "code": "F03",
+        "from": "D5",
+        "to": "P41",
+        "data": "Bản khảo sát hiện tại"
+      },
+      {
+        "code": "F04",
+        "from": "P41",
+        "to": "D5",
+        "data": "Cấu trúc / trạng thái đóng"
+      },
+      {
+        "code": "F05",
+        "from": "N",
+        "to": "P42",
+        "data": "Yêu cầu phát hành / nhóm nhận"
+      },
+      {
+        "code": "F06",
+        "from": "P42",
+        "to": "N",
+        "data": "Kết quả / số người được gửi"
+      },
+      {
+        "code": "F07",
+        "from": "D1",
+        "to": "P42",
+        "data": "Khách đang active"
+      },
+      {
+        "code": "F08",
+        "from": "D2",
+        "to": "P42",
+        "data": "Danh sách khách mục tiêu"
+      },
+      {
+        "code": "F09",
+        "from": "D5",
+        "to": "P42",
+        "data": "Bản nháp hợp lệ"
+      },
+      {
+        "code": "F10",
+        "from": "P42",
+        "to": "D5",
+        "data": "Trạng thái mở / ngày phát hành"
+      },
+      {
+        "code": "F11",
+        "from": "P42",
+        "to": "D6",
+        "data": "Các bản ghi người nhận"
+      },
+      {
+        "code": "F12",
+        "from": "K",
+        "to": "P43",
+        "data": "Yêu cầu danh sách / mở bài"
+      },
+      {
+        "code": "F13",
+        "from": "D5",
+        "to": "P43",
+        "data": "Nội dung / hạn khảo sát"
+      },
+      {
+        "code": "F14",
+        "from": "D6",
+        "to": "P43",
+        "data": "Bài được nhận / chưa làm"
+      },
+      {
+        "code": "F15",
+        "from": "P43",
+        "to": "K",
+        "data": "Danh sách / câu hỏi / lựa chọn"
+      },
+      {
+        "code": "F16",
+        "from": "K",
+        "to": "P44",
+        "data": "Các đáp án đã chọn"
+      },
+      {
+        "code": "F17",
+        "from": "D5",
+        "to": "P44",
+        "data": "Câu bắt buộc / đáp án / hạn"
+      },
+      {
+        "code": "F18",
+        "from": "D6",
+        "to": "P44",
+        "data": "Quyền nhận / đã hoàn thành"
+      },
+      {
+        "code": "F19",
+        "from": "D7",
+        "to": "P44",
+        "data": "Các câu đã ghi trong giao dịch"
+      },
+      {
+        "code": "F20",
+        "from": "P44",
+        "to": "D7",
+        "data": "Câu trả lời hợp lệ"
+      },
+      {
+        "code": "F21",
+        "from": "P44",
+        "to": "D6",
+        "data": "Thời điểm hoàn thành"
+      },
+      {
+        "code": "F22",
+        "from": "P44",
+        "to": "K",
+        "data": "Xác nhận hoặc lỗi nộp bài"
+      }
+    ]
+  },
+  {
+    "name": "05_usecase_customer",
+    "title": "Use case khách hàng",
+    "description": "Đăng nhập là tiền điều kiện của UC03 đến UC06, không phải include chạy lại trong mọi thao tác. UC05 có thể kết thúc mà khách chưa làm bài nên không include UC06.",
+    "kind": "puml"
+  },
+  {
+    "name": "06_usecase_customer_management",
+    "title": "Use case quản lý khách hàng và phản hồi",
+    "description": "Mũi tên tam giác rỗng hướng từ Admin đến Quản lý thể hiện kế thừa quyền use case CRM. Đây là quyền hệ thống, không phải quan hệ kế thừa giữa các bảng tài khoản.",
+    "kind": "puml"
+  },
+  {
+    "name": "07_usecase_survey_admin",
+    "title": "Use case khảo sát và quản trị",
+    "description": "Soạn và phát hành là hai mục tiêu riêng vì bản nháp có thể được lưu mà chưa gửi. Phân quyền thực tế được kiểm tra ở API; việc ẩn nút trên giao diện không đủ.",
+    "kind": "puml"
+  },
+  {
+    "name": "08_seq_register",
+    "title": "Tuần tự đăng ký và thêm khách tại quầy",
+    "description": "UC01 và UC07 dùng cùng quy trình tạo dữ liệu. Khách tự đăng ký luôn có vai trò customer; nhân viên không được chọn vai trò quyền cao cho khách.",
+    "kind": "puml"
+  },
+  {
+    "name": "09_seq_login",
+    "title": "Tuần tự đăng nhập",
+    "description": "UC02 áp dụng cho cả bốn vai trò. Phiên đăng nhập do tầng ứng dụng quản lý; mô hình 11 bảng không lưu session trong PostgreSQL.",
+    "kind": "puml"
+  },
+  {
+    "name": "10_seq_profile",
+    "title": "Tuần tự cập nhật hồ sơ",
+    "description": "UC03 không cho sửa vai trò, trạng thái hay ID khách qua form hồ sơ. Tuổi chỉ được tính khi báo cáo, không lưu thành cột riêng.",
+    "kind": "puml"
+  },
+  {
+    "name": "11_seq_lock_delete",
+    "title": "Tuần tự khóa và xóa khách hàng",
+    "description": "UC09 và UC10 khác nhau về hậu quả dữ liệu. Xóa cứng làm thay đổi thống kê hiện tại; thông báo xác nhận trên UI cần nêu rõ điều này.",
+    "kind": "puml"
+  },
+  {
+    "name": "12_seq_feedback",
+    "title": "Tuần tự gửi và tiếp nhận phản hồi",
+    "description": "UC04 và UC11 ghi nhận hai giai đoạn của phản hồi. Không suy diễn khách đã mua món từ dữ liệu CRM; xác thực hóa đơn cần phân hệ bán hàng riêng.",
+    "kind": "puml"
+  },
+  {
+    "name": "13_seq_publish",
+    "title": "Tuần tự soạn và phát hành khảo sát",
+    "description": "UC13 và UC14 không gửi email hoặc SMS. Gửi nghĩa là tạo bản ghi trong tài khoản khách. Cấu trúc khảo sát được cố định sau phát hành.",
+    "kind": "puml"
+  },
+  {
+    "name": "14_seq_submit",
+    "title": "Tuần tự nhận và nộp khảo sát",
+    "description": "UC05 và UC06 dùng ba khóa ngoại ghép để chống câu trả lời sai quan hệ. Hai yêu cầu nộp cùng bài được tuần tự hóa bằng khóa hàng trong hàm SQL.",
+    "kind": "puml"
+  },
+  {
+    "name": "15_seq_reports",
+    "title": "Tuần tự xem các báo cáo",
+    "description": "UC12 và UC15 phân biệt tỷ lệ hoàn thành trên số người nhận với tỷ lệ đáp án trên số người trả lời từng câu. Backend không trả hash mật khẩu trong báo cáo.",
+    "kind": "puml"
+  },
+  {
+    "name": "16_erd_accounts",
+    "title": "ERD tài khoản và hồ sơ",
+    "description": "Khóa chung tai_khoan_id tạo quan hệ một tài khoản với tối đa một hồ sơ; trigger trì hoãn buộc tài khoản customer có đúng một hồ sơ khi COMMIT. Bảng thể hiện các cột chính; từ điển dữ liệu liệt kê đầy đủ.",
+    "kind": "puml"
+  },
+  {
+    "name": "17_erd_feedback",
+    "title": "ERD đồ uống và phản hồi",
+    "description": "Mỗi phản hồi gắn đúng một khách và một món; chi nhánh có thể bỏ trống. Không xóa món đã có phản hồi; dùng cờ ngừng kinh doanh.",
+    "kind": "puml"
+  },
+  {
+    "name": "18_erd_survey",
+    "title": "ERD khảo sát và bài làm",
+    "description": "Các FK tới tai_khoan và khach_hang được nối đầy đủ trong DBML. Một khảo sát nháp có thể chưa có câu; khi phát hành phải có ít nhất một câu và mỗi câu có ít nhất hai lựa chọn.",
+    "kind": "puml"
+  },
+  {
+    "name": "19_er_concept",
+    "title": "Mô hình thực thể kết hợp khái niệm",
+    "description": "ER khái niệm dùng hình chữ nhật cho thực thể, hình thoi cho kết hợp. Được nhận chuyển thành phan_phoi_khao_sat. Kết hợp Trả lời được định danh bởi khách và câu hỏi; mỗi cặp chọn tối đa một lựa chọn. Tài khoản và chi nhánh nằm ở mô hình triển khai.",
+    "kind": "dot",
+    "flows": []
+  },
+  {
+    "name": "20_class_customer",
+    "title": "Class miền khách hàng và chăm sóc",
+    "description": "Class biểu diễn đối tượng và hành vi nghiệp vụ. KhachHang liên kết hồ sơ với TaiKhoan, không kế thừa TaiKhoan; nhờ đó phù hợp với quan hệ khóa chung trong DB.",
+    "kind": "puml"
+  },
+  {
+    "name": "21_class_survey",
+    "title": "Class miền khảo sát",
+    "description": "Composition thể hiện sở hữu vòng đời trong mô hình đối tượng; không có nghĩa mọi FK phải dùng ON DELETE CASCADE. SQL giữ RESTRICT trên cấu trúc khảo sát để ngăn mất lịch sử.",
+    "kind": "puml"
+  },
+  {
+    "name": "22_class_services",
+    "title": "Class dịch vụ ứng dụng",
+    "description": "Đây là thiết kế lớp để nhóm triển khai backend. Các lớp service không tạo thành bảng. Quyền được kiểm tra trước truy cập repository, và truy vấn phải có tham số.",
+    "kind": "puml"
+  },
+  {
+    "name": "23_activity_submit",
+    "title": "Activity thực hiện khảo sát",
+    "description": "Activity bổ sung luồng rẽ nhánh của UC06. Kiểm tra trước khi hiển thị không thay thế kiểm tra lại trong transaction khi khách nộp.",
+    "kind": "puml"
+  },
+  {
+    "name": "24_state_survey",
+    "title": "State machine vòng đời khảo sát",
+    "description": "Máy trạng thái khớp enum và trigger SQL. Quy tắc hạn nộp được kiểm tra ở hàm nộp; thiết kế không giả định có tác vụ nền chưa được cài đặt.",
+    "kind": "puml"
+  },
+  {
+    "name": "25_architecture",
+    "title": "Kiến trúc triển khai đề xuất",
+    "description": "Giao diện Admin tách riêng bằng tuyến truy cập và quyền. Cả ba giao diện có thể dùng một backend và một CSDL; không cần ba database hoặc ba bảng tài khoản.",
+    "kind": "puml"
+  }
+]

@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Khách hàng" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+U -> UI: Sửa họ tên, năm sinh, sở thích
+UI -> API: Gửi hồ sơ và phiên đăng nhập
+API -> API: Lấy customer ID từ phiên
+API -> DB: Kiểm tra active và danh mục sở thích
+DB --> API: Trạng thái và danh mục hợp lệ
+alt Hợp lệ
+ API -> DB: UPDATE khach_hang WHERE tai_khoan_id = ID phiên
+ DB --> API: Hồ sơ đã cập nhật
+ API --> UI: Thành công
+else Năm sinh sai hoặc không có quyền
+ API --> UI: Từ chối và giữ hồ sơ cũ
+end
+UI --> U: Hiển thị kết quả
+
+@enduml

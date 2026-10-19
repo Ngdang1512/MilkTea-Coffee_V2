@@ -1,0 +1,44 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+actor "Người dùng" as U
+boundary "Giao diện" as UI
+control "API và dịch vụ" as API
+database "PostgreSQL" as DB
+autonumber
+hide footbox
+
+U -> UI: Nhập tài khoản và mật khẩu
+UI -> API: Gửi thông tin qua HTTPS
+API -> DB: Đọc tài khoản theo username chuẩn hóa
+DB --> API: Hash, vai trò và trạng thái
+API -> API: Xác minh mật khẩu băm
+alt Sai thông tin xác thực
+ API --> UI: Thông tin đăng nhập không hợp lệ
+else Mật khẩu đúng nhưng locked
+ API --> UI: Tài khoản bị khóa; liên hệ hỗ trợ
+else Hợp lệ và active
+ API -> API: Tạo phiên đăng nhập
+ API --> UI: Phiên và vai trò được cấp
+ UI --> U: Mở giao diện đúng vai trò
+end
+note over API,DB
+Mỗi yêu cầu tiếp theo vẫn kiểm tra trạng thái.
+Khóa tài khoản phải chặn cả phiên đã mở.
+end note
+
+@enduml

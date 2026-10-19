@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="milktea-coffee — hệ thống quản lý và chăm sóc khách hàng cho chuỗi trà sữa, cà phê." />
+  <title>milktea-coffee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../templates/manager/styles.css" />
+  <link rel="stylesheet" href="../../templates/admin/dashboard.css" />
+  <link rel="stylesheet" href="../../templates/admin/crm-features.css" />
+  <link rel="stylesheet" href="../../templates/front/styles.css" />
+  <link rel="stylesheet" href="../../templates/manager/theme.css" />
+  <link rel="stylesheet" href="../../templates/shared/effects.css" />
+  <link rel="stylesheet" href="../../templates/shared/hover.css" />
+  <link rel="stylesheet" href="../../templates/shared/auth.css" />
+</head>
+<body class="auth-mode" data-default-role="manager">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark">MC</span><span><strong>milktea-coffee</strong><small>Customer care</small></span></div>
+      <nav aria-label="Điều hướng chính" id="mainNav">
+        <p class="nav-label">Không gian làm việc</p>
+        <button class="nav-item active" data-view="dashboard"><span class="icon">⌂</span>Tổng quan</button>
+        <button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng <b>248</b></button>
+        <button class="nav-item" data-view="feedback"><span class="icon">◌</span>Phản hồi <i>8</i></button>
+        <button class="nav-item" data-view="surveys"><span class="icon">✓</span>Khảo sát</button>
+        <button class="nav-item" data-view="reports"><span class="icon">⌁</span>Báo cáo</button>
+        <p class="nav-label">Quản trị</p>
+        <button class="nav-item" data-view="catalog"><span class="icon">◇</span>Danh mục</button>
+        <button class="nav-item" data-view="settings"><span class="icon">⚙</span>Cài đặt</button>
+      </nav>
+      <div class="sidebar-card" id="sidebarCard"><span>✦</span><strong>Gợi ý hôm nay</strong><p>8 phản hồi mới đang chờ đội ngũ chăm sóc.</p><button data-view="feedback">Xem phản hồi →</button></div>
+      <div class="sidebar-footer"><div class="avatar" id="userInitials">NQ</div><div><strong id="userName">Nguyễn Quản Lý</strong><small id="userRole">Quản lý hệ thống</small></div><button aria-label="Đăng xuất">⋮</button></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="mobile-menu" id="menuButton" aria-label="Mở menu">☰</button>
+        <div class="breadcrumb"><span>milktea-coffee</span><b>/</b><strong id="pageCrumb">Tổng quan</strong></div>
+        <div class="top-actions"><label class="global-search"><span>⌕</span><input id="globalSearch" placeholder="Tìm khách hàng..." /><kbd>⌘ K</kbd></label></div>
+      </header>
+
+      <div class="page" id="app"></div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="../../libraries/app.js?v=20261019-1"></script>
+</body>
+</html>

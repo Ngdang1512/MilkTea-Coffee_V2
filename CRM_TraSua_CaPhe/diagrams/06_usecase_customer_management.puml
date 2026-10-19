@@ -1,0 +1,42 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+left to right direction
+actor "Nhân viên" as S
+actor "Quản lý" as M
+actor "Admin" as A
+A --|> M
+rectangle "CRM nội bộ" {
+ usecase "UC07\nThêm khách tại quầy" as U7
+ usecase "UC08\nTìm kiếm khách hàng" as U8
+ usecase "UC09\nKhóa hoặc mở khóa khách" as U9
+ usecase "UC10\nXóa khách hàng" as U10
+ usecase "UC11\nTiếp nhận phản hồi" as U11
+ usecase "UC12\nBáo cáo khách hàng" as U12
+}
+S -- U7
+S -- U8
+S -- U11
+M -- U7
+M -- U8
+M -- U9
+M -- U10
+M -- U11
+M -- U12
+
+@enduml

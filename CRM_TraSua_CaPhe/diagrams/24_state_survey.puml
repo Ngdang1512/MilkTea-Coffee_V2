@@ -1,0 +1,37 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+[*] --> Nhap : tạo khảo sát
+state "Nháp\nnhap" as Nhap
+state "Đang mở\ndang_mo" as Mo
+state "Đã đóng\nda_dong" as Dong
+Nhap --> Nhap : sửa tiêu đề, câu hỏi và lựa chọn
+Nhap --> Mo : phát hành [cấu trúc hợp lệ và có người nhận]
+Mo --> Dong : quản lý đóng thủ công
+Dong --> [*]
+note right of Mo
+Nếu hiện tại >= ngày kết thúc:
+chặn nhận bài dù trạng thái vẫn dang_mo.
+Hết hạn là điều kiện, không có scheduler tự đóng.
+end note
+note bottom of Dong
+Không mở lại khảo sát đã đóng.
+Cần khảo sát mới nếu thay đổi nội dung.
+end note
+
+@enduml

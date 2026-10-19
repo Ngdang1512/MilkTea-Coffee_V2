@@ -1,0 +1,61 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #34546B
+skinparam classAttributeIconSize 0
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam NoteBackgroundColor #F2F5F7
+skinparam NoteBorderColor #8095A5
+skinparam classBackgroundColor #F6F8FA
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam actorStyle stickman
+
+class KhaoSat {
+ -id: Long
+ -tieuDe: String
+ -trangThai: TrangThaiKhaoSat
+ -ngayKetThuc: DateTime
+ +kiemTraDePhatHanh()
+ +dong()
+}
+class CauHoi {
+ -id: Long
+ -noiDung: String
+ -thuTu: Integer
+ -batBuoc: Boolean
+}
+class LuaChon {
+ -id: Long
+ -noiDung: String
+ -thuTu: Integer
+}
+class PhanPhoiKhaoSat {
+ -khaoSatId: Long
+ -khachHangId: Long
+ -ngayGui: DateTime
+ -ngayHoanThanh: DateTime
+ +daHoanThanh(): Boolean
+}
+class CauTraLoi {
+ -cauHoiId: Long
+ -luaChonId: Long
+}
+KhaoSat "1" *-- "0..*" CauHoi
+CauHoi "1" *-- "0..*" LuaChon
+KhaoSat "1" -- "0..*" PhanPhoiKhaoSat
+PhanPhoiKhaoSat "1" *-- "0..*" CauTraLoi
+CauHoi "1" -- "0..*" CauTraLoi
+LuaChon "1" -- "0..*" CauTraLoi
+note bottom of KhaoSat
+Sau phát hành: ít nhất 1 câu;
+mỗi câu có ít nhất 2 lựa chọn.
+Không sửa cấu trúc đã phát hành.
+end note
+
+@enduml

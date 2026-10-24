@@ -437,6 +437,32 @@ async function addSurveyQuestions(client, surveyId, questions) {
 }
 
 async function internalRoutes(request, response, method, path, body) {
+  if (method === "POST" && path === "/internal/manager-unlock-requests") {
+    const username = requireValue(body.tenDangNhap, "Tên đăng nhập", { min: 3, max: 100 }).toLocaleLowerCase();
+    const password = requirePassword(body.matKhau);
+    const reason = requireValue(body.reason, "Lý do", { min: 5, max: 2000 });
+    const { rows } = await pool.query(
+      `SELECT t.id, t.mat_khau_hash AS "passwordHash", t.trang_thai AS status
+         FROM tai_khoan t WHERE t.ten_dang_nhap = $1 AND t.vai_tro = 'manager'`, [username]
+    );
+    const manager = rows[0];
+    if (!manager || !(await verifyPassword(password, manager.passwordHash))) {
+      throw new HttpError(401, "Tên đăng nhập hoặc mật khẩu không chính xác");
+    }
+    if (manager.status !== "locked") throw new HttpError(409, "Tài khoản Manager này không bị khóa");
+    const requestId = await transaction(async client => {
+      const lockedAccount = await client.query("SELECT id FROM tai_khoan WHERE id = $1 AND vai_tro = 'manager' AND trang_thai = 'locked' FOR UPDATE", [manager.id]);
+      if (!lockedAccount.rowCount) throw new HttpError(409, "Tài khoản Manager hiện không còn bị khóa");
+      const pending = await client.query("SELECT id FROM yeu_cau_mo_khoa_manager WHERE manager_id = $1 AND status = 'pending' LIMIT 1", [manager.id]);
+      if (pending.rowCount) throw new HttpError(409, "Bạn đã có yêu cầu mở khóa đang chờ Admin xử lý");
+      const result = await client.query(
+        "INSERT INTO yeu_cau_mo_khoa_manager(manager_id, reason) VALUES ($1, $2) RETURNING id", [manager.id, reason]
+      );
+      return result.rows[0].id;
+    });
+    json(response, 201, { id: requestId, message: "Đã gửi yêu cầu mở khóa đến Admin" });
+    return true;
+  }
   if (method === "POST" && path === "/internal/auth/login") {
     const { token, publicAccount } = await login(body, ["admin", "manager"]);
     json(response, 200, { token, account: publicAccount });
@@ -514,13 +540,22 @@ async function internalRoutes(request, response, method, path, body) {
     return true;
   }
   if (method === "GET" && path === "/internal/reports/customers") {
-    const [ages, preferences] = await Promise.all([
+    const [ages, preferences, surveys] = await Promise.all([
       pool.query(`SELECT nhom_tuoi AS label, so_khach_hang AS count, ty_le_phan_tram AS percentage
                     FROM v_bao_cao_do_tuoi ORDER BY thu_tu`),
       pool.query(`SELECT ten_nhom AS label, so_khach_hang AS count, ty_le_phan_tram AS percentage
-                    FROM v_bao_cao_so_thich ORDER BY id`)
+                    FROM v_bao_cao_so_thich ORDER BY id`),
+      pool.query(`SELECT khao_sat_id AS id, tieu_de AS title, trang_thai AS status,
+                         so_nguoi_duoc_gui AS recipients, so_nguoi_da_lam AS completed,
+                         ty_le_hoan_thanh AS "completionRate"
+                    FROM v_tien_do_khao_sat ORDER BY khao_sat_id DESC`)
     ]);
-    json(response, 200, { ages: ages.rows, preferences: preferences.rows });
+    json(response, 200, {
+      ages: ages.rows,
+      preferences: preferences.rows,
+      surveys: surveys.rows,
+      generatedAt: new Date().toISOString()
+    });
     return true;
   }
   if (method === "GET" && path === "/internal/feedback") {
@@ -807,6 +842,41 @@ async function internalRoutes(request, response, method, path, body) {
         [session.id]
       );
     json(response, 200, { requests: result.rows });
+    return true;
+  }
+  if (method === "GET" && path === "/internal/manager-unlock-requests") {
+    if (session.role !== "admin") throw new HttpError(403, "Chỉ Admin mới được xem yêu cầu mở khóa Manager");
+    const { rows } = await pool.query(
+      `SELECT r.id, 'manager_unlock' AS action, r.reason, r.status,
+              r.created_at AS "createdAt", r.decision_note AS "decisionNote",
+              r.decided_at AS "decidedAt", t.ten_dang_nhap AS "requesterUsername",
+              n.ho_ten AS "requesterName", t.ten_dang_nhap AS "customerName"
+         FROM yeu_cau_mo_khoa_manager r JOIN tai_khoan t ON t.id = r.manager_id
+         LEFT JOIN nhan_vien_noi_bo n ON n.tai_khoan_id = t.id
+        ORDER BY (r.status = 'pending') DESC, r.created_at DESC`
+    );
+    json(response, 200, { requests: rows });
+    return true;
+  }
+  const managerUnlockDecision = path.match(/^\/internal\/manager-unlock-requests\/(\d+)$/);
+  if (method === "PATCH" && managerUnlockDecision) {
+    if (session.role !== "admin") throw new HttpError(403, "Chỉ Admin mới được quyết định yêu cầu mở khóa Manager");
+    const id = requireInteger(managerUnlockDecision[1], "Mã yêu cầu");
+    const status = body.status;
+    if (!["approved", "rejected"].includes(status)) throw new HttpError(400, "Quyết định không hợp lệ");
+    const note = body.note == null || body.note === "" ? null : requireValue(body.note, "Ghi chú", { max: 2000 });
+    await transaction(async client => {
+      const result = await client.query("SELECT id, manager_id, status FROM yeu_cau_mo_khoa_manager WHERE id = $1 FOR UPDATE", [id]);
+      const pending = result.rows[0];
+      if (!pending) throw new HttpError(404, "Không tìm thấy yêu cầu");
+      if (pending.status !== "pending") throw new HttpError(409, "Yêu cầu này đã được xử lý");
+      if (status === "approved") {
+        const account = await client.query("UPDATE tai_khoan SET trang_thai = 'active', ngay_cap_nhat = clock_timestamp() WHERE id = $1 AND vai_tro = 'manager' AND trang_thai = 'locked'", [pending.manager_id]);
+        if (!account.rowCount) throw new HttpError(409, "Tài khoản Manager không còn ở trạng thái bị khóa");
+      }
+      await client.query("UPDATE yeu_cau_mo_khoa_manager SET status = $2, decided_by = $3, decision_note = $4, decided_at = clock_timestamp() WHERE id = $1", [id, status, session.id, note]);
+    });
+    json(response, 200, { message: status === "approved" ? "Đã phê duyệt và mở khóa tài khoản Manager" : "Đã từ chối yêu cầu" });
     return true;
   }
   if (method === "POST" && path === "/internal/customer-requests") {

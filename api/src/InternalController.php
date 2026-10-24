@@ -276,6 +276,8 @@ final class InternalController
         return [
             'ages' => $this->db->query('SELECT nhom_tuoi AS label,so_khach_hang AS count,ty_le_phan_tram AS percentage FROM v_bao_cao_do_tuoi ORDER BY thu_tu')->fetchAll(),
             'preferences' => $this->db->query('SELECT ten_nhom AS label,so_khach_hang AS count,ty_le_phan_tram AS percentage FROM v_bao_cao_so_thich ORDER BY id')->fetchAll(),
+            'surveys' => $this->db->query('SELECT khao_sat_id AS id,tieu_de AS title,trang_thai AS status,so_nguoi_duoc_gui AS recipients,so_nguoi_da_lam AS completed,ty_le_hoan_thanh AS "completionRate" FROM v_tien_do_khao_sat ORDER BY khao_sat_id DESC')->fetchAll(),
+            'generatedAt' => (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format(\DateTimeInterface::ATOM),
         ];
     }
 

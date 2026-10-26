@@ -1,0 +1,32 @@
+/* Clear, responsive styling for the feedback workflow and reply dialog. */
+.feedback-list{gap:14px}
+.feedback-card{position:relative;overflow:hidden;align-items:flex-start;padding:20px 22px;border-radius:15px;transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,border-color .24s ease}
+.feedback-card:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,#67ae8a,#247456);transform:scaleY(.25);transform-origin:center;opacity:0;transition:transform .25s ease,opacity .25s ease}
+.feedback-card:hover{transform:translateY(-3px);border-color:#b8d4c5;box-shadow:0 14px 32px rgba(30,73,53,.11)}
+.feedback-card:hover:before{transform:scaleY(1);opacity:1}
+.feedback-clickable{cursor:pointer}
+.feedback-body p{line-height:1.75}
+.feedback-actions .outline{transition:transform .2s ease,background-color .2s ease,border-color .2s ease}
+.feedback-actions .outline:hover{background:#eff7f2;border-color:#a9cbb8}
+.feedback-dialog{width:min(570px,calc(100% - 28px));max-width:none;max-height:min(90vh,760px);overflow:auto;padding:0;border:1px solid rgba(255,255,255,.78);border-radius:18px;background:#fff;color:#20362d;box-shadow:0 28px 90px rgba(13,35,26,.3);opacity:0;transform:translateY(16px) scale(.985);transition:opacity .22s ease,transform .28s cubic-bezier(.2,.8,.2,1),overlay .28s allow-discrete,display .28s allow-discrete}
+.feedback-dialog[open]{opacity:1;transform:none}
+.feedback-dialog::backdrop{background:rgba(17,31,25,.45);backdrop-filter:blur(5px);transition:background .25s ease,backdrop-filter .25s ease}
+.feedback-dialog form{padding:28px 30px 25px}
+.feedback-dialog .form-heading{padding-bottom:17px;margin-bottom:17px;border-bottom:1px solid #e8eeea}
+.feedback-dialog .form-heading h2{font:700 22px "Playfair Display",serif;letter-spacing:-.2px}
+.feedback-dialog .form-heading p{margin-top:6px;color:#89958f;font-size:10px;line-height:1.6}
+.feedback-original{margin:0 0 19px;padding:15px 16px;border:1px solid #e6eee9;border-radius:12px;background:linear-gradient(135deg,#f7faf8,#fff);animation:feedbackReveal .35s ease both}
+.feedback-original .stars{letter-spacing:1px}
+.feedback-status-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 18px}
+.feedback-status-step{min-height:48px;padding:9px 8px;border:1px solid #dfe8e3;border-radius:9px;background:#fff;color:#53635b;font:600 10px Manrope;transition:transform .18s ease,border-color .18s ease,background .18s ease,color .18s ease,box-shadow .18s ease}
+.feedback-status-step small{display:inline;margin-right:3px;color:#98a49e;font-size:9px}
+.feedback-status-step:hover{transform:translateY(-2px);border-color:#9fc6af;background:#f5faf7}
+.feedback-status-step.active,.feedback-status-step.sel,.feedback-status-step[aria-pressed="true"]{border-color:#287b5b;background:#edf7f1;color:#206947;box-shadow:0 0 0 3px rgba(40,123,91,.09)}
+.feedback-dialog textarea{width:100%;min-height:112px;resize:vertical;padding:12px 13px;border:1px solid #dfe7e2;border-radius:10px;background:#fbfdfb;color:#263a31;font:12px/1.6 Manrope;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+.feedback-dialog textarea:focus{outline:0;border-color:#69a486;background:#fff;box-shadow:0 0 0 4px rgba(53,139,100,.12)}
+.feedback-dialog form>footer{display:flex;justify-content:flex-end;gap:9px;margin-top:18px;padding-top:16px;border-top:1px solid #e8eeea}
+.feedback-dialog form>footer .primary{min-height:43px;padding-inline:19px}
+@keyframes feedbackReveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@starting-style{.feedback-dialog[open]{opacity:0;transform:translateY(16px) scale(.985)}}
+@media(max-width:520px){.feedback-dialog form{padding:22px 18px 18px}.feedback-dialog .form-heading h2{font-size:20px}.feedback-status-steps{grid-template-columns:1fr}.feedback-status-step{text-align:left;padding-inline:12px}.feedback-dialog form>footer{flex-direction:column-reverse}.feedback-dialog form>footer button{width:100%}.feedback-card{padding:16px}}
+@media(prefers-reduced-motion:reduce){.feedback-dialog,.feedback-card,.feedback-card:before,.feedback-status-step{transition:none;animation:none}}

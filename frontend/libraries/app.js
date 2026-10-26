@@ -524,31 +524,34 @@ function createSurveyView() {
     </div>
   </section>
 
-  <form class="panel profile-form" id="bulkSurveyForm">
-    <div class="form-grid">
+  <form class="panel profile-form survey-compose" id="bulkSurveyForm">
+    <section class="survey-compose-section survey-basics">
+      <div class="survey-section-heading"><span>01</span><div><h2>Thông tin khảo sát</h2><p>Đặt tên chiến dịch và thời hạn nhận câu trả lời.</p></div></div>
+      <div class="form-grid">
       <label class="full-width">
         Tiêu đề chiến dịch khảo sát sản phẩm mới *
         <input name="title" minlength="3" maxlength="255" placeholder="Ví dụ: Đánh giá độ hài lòng sản phẩm Trà Ô Long Mộc Lan Mới" required />
       </label>
       <label>
         Mô tả ngắn gọn
-        <input name="description" maxlength="2000" placeholder="Mục đích khảo sát, ưu đãi khi hoàn thành..." />
+        <textarea name="description" maxlength="2000" rows="2" placeholder="Mục đích khảo sát, ưu đãi khi hoàn thành..."></textarea>
       </label>
       <label>
         Hạn trả lời khảo sát
         <input name="endAt" type="datetime-local" min="${minDateTimeLocal()}" />
         <small>Để trống nếu không giới hạn; thời gian theo giờ thiết bị.</small>
       </label>
-    </div>
+      </div>
+    </section>
 
     <!-- Lọc tệp khách hàng mục tiêu & khống chế hạn mức chống spam -->
-    <fieldset>
+    <fieldset class="survey-compose-section survey-audience">
       <legend>Tệp khách hàng mục tiêu & Kiểm soát hạn mức (Anti-Spam)</legend>
 
       <div class="filter-chips">
-        <label><input type="radio" name="targetMode" value="all" checked /> Gửi toàn bộ khách hàng hoạt động (${activeCustomers.length})</label>
-        <label><input type="radio" name="targetMode" value="filtered" /> Lọc theo phân vùng / sở thích / độ tuổi</label>
-        <label><input type="radio" name="targetMode" value="manual" /> Chọn từng khách hàng thủ công</label>
+        <label><input type="radio" name="targetMode" value="all" checked /><span class="audience-icon">◎</span><span><strong>Toàn bộ khách đang hoạt động</strong><small>${activeCustomers.length} khách hàng đủ điều kiện</small></span></label>
+        <label><input type="radio" name="targetMode" value="filtered" /><span class="audience-icon">⌕</span><span><strong>Lọc theo tiêu chí</strong><small>Chọn sở thích hoặc độ tuổi</small></span></label>
+        <label><input type="radio" name="targetMode" value="manual" /><span class="audience-icon">☷</span><span><strong>Chọn thủ công</strong><small>Tự chọn danh sách người nhận</small></span></label>
       </div>
 
       <div id="surveyFilterBox" style="display:none;background:#fbfcfb;padding:14px;border-radius:9px;border:1px solid var(--line);margin:12px 0">
@@ -597,13 +600,11 @@ function createSurveyView() {
     </fieldset>
 
     <!-- Soạn thảo câu hỏi trắc nghiệm & tự luận -->
-    <div class="form-heading" style="margin-top:20px">
-      <h2>Bộ câu hỏi khảo sát</h2>
-      <p>Thêm câu hỏi trắc nghiệm (các lựa chọn cách nhau bằng dấu chấm phẩy ;) hoặc câu hỏi tự luận mở.</p>
-    </div>
+    <section class="survey-compose-section survey-question-section">
+    <div class="survey-section-heading"><span>02</span><div><h2>Bộ câu hỏi khảo sát</h2><p>Mỗi lựa chọn cách nhau bằng dấu chấm phẩy (;).</p></div></div>
 
     <div id="surveyQuestions">
-      <div class="form-grid survey-question-input">
+      <div class="form-grid survey-question-input survey-question-row">
         <label style="flex:2">
           Câu hỏi 1 *
           <input name="question" minlength="3" placeholder="Ví dụ: Bạn cảm thấy hương vị trà sữa mới thế nào?" required />
@@ -613,7 +614,7 @@ function createSurveyView() {
           <input name="choices" maxlength="5000" placeholder="Rất đậm đà; Hài hòa dễ uống; Hơi ngọt; Chưa phù hợp" required />
         </label>
       </div>
-      <div class="form-grid survey-question-input">
+      <div class="form-grid survey-question-input survey-question-row">
         <label style="flex:2">
           Câu hỏi 2 (Ý kiến tự luận / Mức giá sẵn sàng chi trả) *
           <input name="question" minlength="3" placeholder="Mức giá bạn sẵn sàng chi trả cho sản phẩm này?" required />
@@ -624,6 +625,7 @@ function createSurveyView() {
         </label>
       </div>
     </div>
+    </section>
 
     <div class="auth-error" id="surveyError" role="alert"></div>
 
@@ -1292,7 +1294,7 @@ const titles = {
 };
 
 const navs = {
-  admin: `<p class="nav-label">Quản trị tối cao</p><button class="nav-item" data-view="admin-dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="accounts"><span class="icon">♧</span>Quản lý Manager</button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Trung tâm phê duyệt <b id="approvalNavCount" hidden></b></button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng</button><button class="nav-item" data-view="surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="reports"><span class="icon">⌁</span>Báo cáo</button>`,
+  admin: `<p class="nav-label">Quản trị tối cao</p><button class="nav-item" data-view="admin-dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="accounts"><span class="icon">♧</span>Quản lý Manager</button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Trung tâm phê duyệt <b id="approvalNavCount" hidden></b></button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng</button>`,
   manager: `<p class="nav-label">Không gian làm việc</p><button class="nav-item" data-view="dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng <b id="customerCount">…</b></button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Yêu cầu Admin</button><button class="nav-item" data-view="feedback"><span class="icon">◌</span>Phản hồi <i id="feedbackCount">…</i></button><button class="nav-item" data-view="surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="admin-catalog"><span class="icon">☕</span>Đồ uống</button><button class="nav-item" data-view="reports"><span class="icon">⌁</span>Báo cáo</button>`,
   customer: `<p class="nav-label">Tài khoản của tôi</p><button class="nav-item" data-view="customer-home"><span class="icon">⌂</span>Trang chủ</button><button class="nav-item" data-view="profile"><span class="icon">♧</span>Hồ sơ cá nhân</button><button class="nav-item" data-view="my-feedback"><span class="icon">♡</span>Phản hồi của tôi</button><button class="nav-item" data-view="my-surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="notifications"><span class="icon">♢</span>Thông báo <i id="notificationCount">0</i></button><p class="nav-label">Hỗ trợ</p><button class="nav-item" data-view="help"><span class="icon">?</span>Trung tâm trợ giúp</button>`
 };
@@ -2182,42 +2184,9 @@ async function setupInternalPage(view, renderVersion) {
       const reply = document.querySelector("#feedbackModalReply").value.trim();
       setFormBusy(form, true);
       try {
-        if (statusButton) {
-          const customer = internalSession.customers.find(item => String(item.id) === String(customerId));
-          if (!customer) throw new Error("Không tìm thấy hồ sơ khách hàng cần cập nhật.");
-          openAccountStatusModal("customer", customerId, statusButton.dataset.status, customer.name);
-          return;
-        } else if (editButton) {
-          const customer = internalSession.customers.find(item => String(item.id) === String(customerId));
-          if (!customer) throw new Error("Không tìm thấy hồ sơ khách hàng cần cập nhật.");
-          const dialog = document.querySelector("#customerEditDialog");
-          const form = document.querySelector("#customerEditForm");
-          form.dataset.id = customerId;
-          form.elements.hoTen.value = customer.name || "";
-          form.elements.namSinh.value = customer.birth_year || "";
-          form.elements.gioiTinh.value = customer.gender || "khong_cung_cap";
-          form.elements.soThichId.value = customer.preferenceId || "";
-          document.querySelector("#customerEditAvatar").textContent = initials(customer.name);
-          document.querySelector("#customerEditSummary").textContent = customer.name || "Khách hàng CRM";
-          document.querySelector("#customerEditCode").textContent = customer.code || "—";
-          document.querySelector("#customerEditUsername").textContent = customer.username || "—";
-          document.querySelector("#customerEditStatus").textContent = statusLabel(customer.status);
-          document.querySelector("#customerEditError").textContent = "";
-          dialog.showModal();
-          form.elements.hoTen.focus();
-          return;
-        } else if (requestButton) {
-          const reason = window.prompt(`Lý do yêu cầu khóa tài khoản "${actionButton.dataset.name}":`);
-          if (reason === null) return;
-          await internalApi.createCustomerRequest({ customerId: Number(customerId), action: "lock_customer", reason });
-          internalSession.loaded.delete("customer-requests");
-          notify("Đã gửi yêu cầu khóa đến Admin");
-        } else {
-          return;
-        }
-        internalSession.loaded.delete("customers");
-        internalSession.loaded.delete("admin-dashboard");
-        internalSession.loaded.delete("dashboard");
+        await internalApi.updateFeedback(id, currentFeedbackStatusVal, reply);
+        internalSession.loaded.delete("feedback");
+        internalSession.feedback = (await internalApi.feedback()).feedback;
         notify("Đã cập nhật trạng thái phản hồi & gửi thông báo đến khách hàng");
         feedbackModal.close();
         render("feedback");
@@ -2302,7 +2271,7 @@ async function setupInternalPage(view, renderVersion) {
       document.querySelector("#addSurveyQuestion")?.addEventListener("click", () => {
         const qCount = document.querySelectorAll(".survey-question-input").length + 1;
         document.querySelector("#surveyQuestions").insertAdjacentHTML("beforeend", `
-          <div class="form-grid survey-question-input">
+          <div class="form-grid survey-question-input survey-question-row">
             <label style="flex:2">
               Câu hỏi ${qCount} *
               <input name="question" minlength="3" placeholder="Nhập nội dung câu hỏi..." required />

@@ -3,8 +3,7 @@ import { APP_CONFIG } from "../configs/app-config.js";
 import { customerApi, internalApi } from "./api-client.js";
 
 const customerSession = { profile: null, options: null, currentSurvey: null, completedSurvey: null, questionIndex: 0, answers: [], notifications: [], notificationVisible: 8, surveyFilter: "pending", feedbackFilter: "all", feedbackVisible: 5, helpQuery: "" };
-const internalSession = { account: null, dashboard: null, customers: [], feedback: [], surveys: [], editSurvey: null, accounts: [], managers: [], customerRequests: [], approvalFilters: { tab: "pending", query: "", from: "", to: "", page: 1 }, catalogs: null, reports: null, surveyResults: null, reportSurveyId: "", customerFilters: { query: "", region: "", preference: "", status: "" }, feedbackFilters: { status: "", rating: "", query: "" }, loaded: new Set() };
-let reportRefreshTimer = null;
+const internalSession = { account: null, dashboard: null, customers: [], feedback: [], surveys: [], editSurvey: null, accounts: [], managers: [], customerRequests: [], approvalFilters: { tab: "pending", query: "", from: "", to: "", page: 1 }, customerFilters: { query: "", preference: "", status: "" }, feedbackFilters: { status: "", rating: "", query: "" }, catalogs: null, reports: null, surveyResults: null, reportSurveyResults: [], loaded: new Set() };
 const escapeHtml = value => String(value ?? "").replace(/[&<>"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
 const initials = name => String(name || "?").trim().split(/\s+/).slice(-2).map(word => word[0]).join("").toUpperCase();
 const formatDate = value => value ? new Date(value).toLocaleDateString("vi-VN") : "—";
@@ -72,7 +71,7 @@ function dashboard() {
 
   return `
   <div class="manager-dashboard-welcome">
-    <p class="eyebrow">KHÔNG GIAN LÀM VIỆC MANAGER · PHỤ TRÁCH KHÁCH HÀNG MIỀN NAM</p>
+    <p class="eyebrow">KHÔNG GIAN LÀM VIỆC MANAGER · CHĂM SÓC KHÁCH HÀNG</p>
     <h1>${greeting}, ${escapeHtml(managerName)}! 👋</h1>
     <p>Hệ thống vận hành milktea-coffee CRM — hôm nay là ${now.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}.</p>
   </div>
@@ -164,7 +163,7 @@ function dashboard() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   2. QUẢN LÝ KHÁCH HÀNG (CUSTOMER CARE & REGION)
+   2. QUẢN LÝ KHÁCH HÀNG
    ══════════════════════════════════════════════════════════════════════ */
 function customerTable(rows, showActions = false) {
   const actions = c => currentRole === "admin"
@@ -174,18 +173,12 @@ function customerTable(rows, showActions = false) {
   return `<div class="table-wrap"><table><thead><tr>
     <th>Khách hàng</th>
     <th>Mã thành viên</th>
-    <th>Khu vực / Vùng</th>
     <th>Tuổi</th>
     <th>Sở thích mặc định</th>
     <th>Trạng thái</th>
     <th>Cập nhật</th>
     ${showActions ? "<th>Thao tác</th>" : ""}
   </tr></thead><tbody>${rows.map(c => {
-    const reg = getCustomerRegion(c);
-    const regBadge = reg === "mien_nam"
-      ? `<span class="status active" style="font-size:9px">Miền Nam (Phụ trách)</span>`
-      : `<span class="status draft" style="font-size:9px">${regionLabel(reg)}</span>`;
-
     return `<tr>
       <td>
         <div class="customer">
@@ -197,7 +190,6 @@ function customerTable(rows, showActions = false) {
         </div>
       </td>
       <td><code>${escapeHtml(c.code)}</code></td>
-      <td>${regBadge}</td>
       <td>${c.age || (new Date().getFullYear() - (c.birth_year || c.birthYear || 2000))} tuổi</td>
       <td>${escapeHtml(c.preference || "Chưa chọn")}</td>
       <td><span class="status ${c.status === "locked" ? "locked" : "active"}"><i></i>${statusLabel(c.status)}</span></td>
@@ -215,8 +207,6 @@ function customersView() {
 
   // Lọc theo điều kiện
   const filteredRows = allRows.filter(c => {
-    const reg = getCustomerRegion(c);
-    if (filters.region && reg !== filters.region) return false;
     if (filters.preference && String(c.preferenceId) !== String(filters.preference)) return false;
     if (filters.status && c.status !== filters.status) return false;
     if (filters.query) {
@@ -231,38 +221,28 @@ function customersView() {
   <section class="page-heading compact">
     <div>
       <p class="eyebrow">CHĂM SÓC KHÁCH HÀNG</p>
-      <h1>Quản lý khách hàng ${manager ? "— Phân vùng Miền Nam" : ""}</h1>
-      <p>${manager ? "Thêm mới thủ công, cập nhật hồ sơ theo phân vùng được giao. Khóa hoặc mở khóa tài khoản đều phải gửi đề xuất để Admin phê duyệt." : "Theo dõi toàn bộ tài khoản khách hàng toàn hệ thống và thực hiện khóa/mở khóa."}</p>
+      <h1>Quản lý khách hàng</h1>
+      <p>${manager ? "Thêm mới, cập nhật hồ sơ và gửi đề xuất khóa hoặc mở khóa lên Admin phê duyệt." : "Theo dõi toàn bộ tài khoản khách hàng và thực hiện khóa/mở khóa."}</p>
     </div>
     ${manager ? `<button class="primary" data-view="create-customer">＋ Thêm khách hàng mới</button>` : ""}
   </section>
 
-  ${manager ? unlockProposalPanel(allRows) : ""}
-
   <section class="panel list-panel">
     <div class="feedback-filter-bar">
-      <label class="list-search" style="flex:1;max-width:300px">
-        ⌕<input id="customerSearchInput" value="${escapeHtml(filters.query)}" placeholder="Tìm theo tên, mã TV, sở thích..." />
+      <label class="list-search customer-filter-search" style="flex:1;max-width:300px">
+        <span aria-hidden="true">⌕</span><input id="customerSearchInput" aria-label="Tìm khách hàng" value="${escapeHtml(filters.query)}" placeholder="Tìm theo tên, mã TV, sở thích..." />
       </label>
 
-      ${manager ? `
-      <select class="feedback-filter-select" id="customerRegionFilter">
-        <option value="">Tất cả phân vùng (${allRows.length})</option>
-        <option value="mien_nam" ${filters.region === "mien_nam" ? "selected" : ""}>📍 Miền Nam (Phân vùng phụ trách)</option>
-        <option value="mien_trung" ${filters.region === "mien_trung" ? "selected" : ""}>Miền Trung</option>
-        <option value="mien_bac" ${filters.region === "mien_bac" ? "selected" : ""}>Miền Bắc</option>
-      </select>` : ""}
-
-      <select class="feedback-filter-select" id="customerPrefFilter">
+      <label class="customer-filter-control"><span aria-hidden="true">♡</span><select class="feedback-filter-select" id="customerPrefFilter" aria-label="Lọc theo sở thích">
         <option value="">Tất cả sở thích</option>
         ${preferences.map(p => `<option value="${p.id}" ${String(filters.preference) === String(p.id) ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
-      </select>
+      </select></label>
 
-      <select class="feedback-filter-select" id="customerStatusFilter">
+      <label class="customer-filter-control"><span aria-hidden="true">◉</span><select class="feedback-filter-select" id="customerStatusFilter" aria-label="Lọc theo trạng thái">
         <option value="">Mọi trạng thái</option>
         <option value="active" ${filters.status === "active" ? "selected" : ""}>Hoạt động</option>
         <option value="locked" ${filters.status === "locked" ? "selected" : ""}>Đã khóa</option>
-      </select>
+      </select></label>
     </div>
 
     <div id="customerResults">
@@ -278,7 +258,7 @@ function customersView() {
     <form class="profile-form" id="customerEditForm">
       <div class="form-heading">
         <h2 id="customerEditTitle">Cập nhật hồ sơ khách hàng</h2>
-        <p>Điều chỉnh thông tin nhân khẩu học, sở thích và phân vùng chăm sóc.</p>
+        <p>Điều chỉnh thông tin nhân khẩu học và sở thích của khách hàng.</p>
       </div>
       <div class="form-grid">
         <label>
@@ -305,14 +285,6 @@ function customersView() {
             ${preferences.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}
           </select>
         </label>
-        <label class="full-width">
-          Phân vùng quản lý
-          <select name="phanVung" id="editCustomerRegion">
-            <option value="mien_nam">Miền Nam (Khu vực phụ trách của Manager)</option>
-            <option value="mien_trung">Miền Trung</option>
-            <option value="mien_bac">Miền Bắc</option>
-          </select>
-        </label>
       </div>
       <div class="auth-error" id="customerEditError" role="alert"></div>
       <footer>
@@ -323,7 +295,7 @@ function customersView() {
   </dialog>
 
   <!-- Modal Đề xuất khóa / mở khóa khách hàng gửi Admin duyệt -->
-  <dialog class="manager-edit-dialog lock-request-dialog" id="customerLockDialog" aria-labelledby="lockDialogTitle">
+  <dialog class="lock-request-dialog" id="customerLockDialog" aria-labelledby="lockDialogTitle">
     <form class="profile-form" id="customerLockForm">
       <div class="form-heading">
         <h2 id="lockDialogTitle">Đề xuất khóa tài khoản khách hàng</h2>
@@ -354,23 +326,6 @@ function customersView() {
   </dialog>
 
   ${manager ? "" : accountStatusDialog()}`;
-}
-
-function unlockProposalPanel(customers) {
-  const locked = customers.filter(item => item.status === "locked");
-  const pendingUnlock = internalSession.customerRequests.filter(item => item.status === "pending" && item.action === "unlock_customer");
-  if (!locked.length && !pendingUnlock.length) return "";
-  return `<section class="panel unlock-proposal-panel">
-    <div class="panel-title">
-      <div>
-        <p class="eyebrow">ĐỀ XUẤT MỞ KHÓA · CHỜ ADMIN DUYỆT</p>
-        <h2>Tài khoản đang khóa</h2>
-        <p>Manager gửi lý do mở khóa; Admin phê duyệt mới phục hồi tài khoản. Đang chờ duyệt: <strong>${pendingUnlock.length}</strong>.</p>
-      </div>
-      <button class="outline" data-view="customer-requests">Theo dõi yêu cầu đã gửi →</button>
-    </div>
-    ${locked.length ? customerTable(locked, true) : `<p class="form-note">Không còn tài khoản đang khóa. Các đề xuất mở khóa đang chờ Admin xử lý.</p>`}
-  </section>`;
 }
 
 function accountStatusDialog() {
@@ -586,7 +541,7 @@ function createSurveyView() {
       </label>
     </div>
 
-    <!-- Phân vùng lọc tệp khách hàng mục tiêu & khống chế hạn mức chống spam -->
+    <!-- Lọc tệp khách hàng mục tiêu & khống chế hạn mức chống spam -->
     <fieldset>
       <legend>Tệp khách hàng mục tiêu & Kiểm soát hạn mức (Anti-Spam)</legend>
 
@@ -613,15 +568,6 @@ function createSurveyView() {
               <option value="18_24">18 – 24 tuổi</option>
               <option value="25_35">25 – 35 tuổi</option>
               <option value="over35">Trên 35 tuổi</option>
-            </select>
-          </label>
-          <label>
-            Phân vùng quản lý
-            <select id="surveyFilterRegion">
-              <option value="">Mọi khu vực</option>
-              <option value="mien_nam" selected>Miền Nam (Phụ trách)</option>
-              <option value="mien_trung">Miền Trung</option>
-              <option value="mien_bac">Miền Bắc</option>
             </select>
           </label>
         </div>
@@ -801,30 +747,33 @@ function surveyResultsView() {
    5. KHAI THÁC BÁO CÁO (BIỂU ĐỒ REAL-TIME & XUẤT EXCEL/PDF CHO BAN GIÁM ĐỐC)
    ══════════════════════════════════════════════════════════════════════ */
 function customerReportsView() {
-  const reports = internalSession.reports || { ages: [], preferences: [], surveys: [] };
-  const surveys = reports.surveys?.length ? reports.surveys : internalSession.surveys;
-  const totalCustomers = reports.ages.reduce((sum, item) => sum + Number(item.count || 0), 0) || internalSession.customers.length;
+  const reports = internalSession.reports || { ages: [], preferences: [] };
+  const totalCustomers = reports.ages.reduce((total, item) => total + Number(item.count || 0), 0);
   const activeCount = internalSession.customers.filter(c => c.status === "active").length;
-  const surveysCount = surveys.length;
+  const surveysCount = internalSession.surveys.length;
   const feedbackCount = internalSession.feedback.length;
+
+  // Tính chiều cao cột tối đa cho biểu đồ cột
   const maxAgeCount = Math.max(...reports.ages.map(a => Number(a.count || 0)), 1);
-  const maxSurveyRecipients = Math.max(...surveys.map(item => Number(item.recipients || 0)), 1);
+
+  // Bảng màu cho Pie chart
   const pieColors = ["#1e795e", "#d5a973", "#4c8098", "#c8882e", "#86ac91", "#c06f5a"];
-  const generatedAt = reports.generatedAt ? formatDateTime(reports.generatedAt) : formatDateTime(new Date());
-  const selectedId = String(internalSession.reportSurveyId || "");
-  const surveyResult = internalSession.surveyResults;
 
   return `
   <section class="page-heading compact">
     <div>
-      <p class="eyebrow">TRUNG TÂM KHAI THÁC DỮ LIỆU · REAL-TIME</p>
-      <h1>Báo cáo nhân khẩu học & kết quả khảo sát</h1>
-      <p><span class="live-dot" aria-hidden="true"></span> Số liệu đồng bộ từ PostgreSQL lúc <strong>${generatedAt}</strong>. Tự làm mới mỗi 30 giây.</p>
+      <p class="eyebrow">TRUNG TÂM KHAI THÁC DỮ LIỆU</p>
+      <h1>Báo cáo Nhân khẩu học & Đo lường Hài lòng</h1>
+    <p><span class="live-dot" aria-hidden="true"></span> Biểu đồ nhân khẩu học và kết quả khảo sát được tải trực tiếp từ hệ thống.</p>
     </div>
     <div class="export-group">
-      <button class="export-btn" id="refreshReportsBtn" type="button">↻ Làm mới ngay</button>
-      <button class="export-btn" id="exportExcelBtn" type="button"><span>📊</span> Xuất Excel</button>
-      <button class="export-btn primary" id="exportPdfBtn" type="button" style="background:var(--green);color:#fff;border-color:var(--green)"><span>🖨️</span> Xuất PDF gửi Ban Giám Đốc</button>
+      <button class="export-btn" id="refreshReportsBtn" type="button">↻ Làm mới số liệu</button>
+      <button class="export-btn" id="exportExcelBtn" type="button">
+        <span>📊</span> Xuất Excel (.CSV)
+      </button>
+      <button class="export-btn primary" id="exportPdfBtn" type="button" style="background:var(--green);color:#fff;border-color:var(--green)">
+        <span>🖨️</span> In / Xuất PDF
+      </button>
     </div>
   </section>
 
@@ -938,108 +887,82 @@ function customerReportsView() {
       </div>
     </article>
   </section>
-
-  <article class="report-panel survey-progress-panel">
-    <div class="report-panel-title">
-      <div>
-        <h2>Kết quả khảo sát theo thời gian thực</h2>
-        <p>Tiến độ hoàn thành từng chiến dịch và phân bố lựa chọn của khách hàng</p>
-      </div>
-      <label class="report-survey-select">Chọn khảo sát
-        <select id="reportSurveySelect">
-          <option value="">— Xem tổng quan tiến độ —</option>
-          ${surveys.map(item => `<option value="${item.id}" ${selectedId === String(item.id) ? "selected" : ""}>${escapeHtml(item.title)}</option>`).join("")}
-        </select>
-      </label>
-    </div>
-    <div class="bar-chart survey-bar-chart">
-      ${surveys.length ? surveys.map(item => {
-        const heightPct = Math.round((Number(item.completionRate || 0)));
-        return `<div class="bar-chart-col">
-          <span class="bar-chart-value">${Number(item.completionRate || 0).toFixed(0)}%</span>
-          <div class="bar-chart-bar" style="height:${Math.max(8, heightPct)}%"></div>
-          <span class="bar-chart-label">${escapeHtml(item.title)}</span>
-          <small>${item.completed}/${item.recipients || maxSurveyRecipients}</small>
-        </div>`;
-      }).join("") : `<p>Chưa có chiến dịch khảo sát.</p>`}
-    </div>
-    ${surveyResult?.survey ? `<div class="survey-live-results">
-      <h3>${escapeHtml(surveyResult.survey.title)}</h3>
-      <p>${surveyResult.survey.completed} / ${surveyResult.survey.recipients} đã hoàn thành · ${Number(surveyResult.survey.completionRate || 0).toFixed(1)}%</p>
-      ${(surveyResult.questions || []).map((question, index) => `<div class="survey-live-question">
-        <strong>Câu ${index + 1}. ${escapeHtml(question.content)}</strong>
-        ${(question.choices || []).map(choice => `<div class="report-row">
-          <div><strong>${escapeHtml(choice.content)}</strong><small>${choice.count} lượt chọn</small></div>
-          <strong>${Number(choice.percentage || 0).toFixed(1)}%</strong>
-          <div class="report-track"><i style="width:${Math.max(0, Math.min(100, Number(choice.percentage || 0)))}%"></i></div>
-        </div>`).join("")}
-      </div>`).join("")}
-    </div>` : `<p class="form-note">Chọn một khảo sát để xem biểu đồ lựa chọn chi tiết, dùng cho báo cáo gửi Ban Giám Đốc.</p>`}
-  </article>`;
+  <section class="panel list-panel" style="margin-top:18px">
+    <div class="panel-title"><div><h2>Kết quả khảo sát</h2><p>Số lượt chọn và tỷ lệ phản hồi theo từng câu hỏi</p></div></div>
+    ${internalSession.reportSurveyResults.length ? internalSession.reportSurveyResults.map(result => `<article class="survey-report-result"><h3>${escapeHtml(result.survey.title)}</h3><p>${result.survey.completed} / ${result.survey.recipients} lượt hoàn thành · ${Number(result.survey.completionRate || 0).toFixed(1)}%</p>${result.questions.map((question, index) => `<div class="report-survey-question"><strong>${index + 1}. ${escapeHtml(question.content)}</strong>${question.choices.map(choice => `<div class="report-row"><div><strong>${escapeHtml(choice.content)}</strong><small>${choice.count} lượt chọn</small></div><strong>${Number(choice.percentage || 0).toFixed(1)}%</strong><div class="report-track"><i style="width:${Math.max(0, Math.min(100, Number(choice.percentage || 0)))}%"></i></div></div>`).join("")}</div>`).join("")}</article>`).join("") : `<p>Chưa có khảo sát hoặc chưa có kết quả.</p>`}
+  </section>`;
 }
 
-function xmlEscape(value) {
-  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function excelSheet(name, headers, rows) {
-  const header = `<Row>${headers.map(item => `<Cell ss:StyleID="Header"><Data ss:Type="String">${xmlEscape(item)}</Data></Cell>`).join("")}</Row>`;
-  const body = rows.map(row => `<Row>${row.map(cell => {
-    const numeric = typeof cell === "number" && Number.isFinite(cell);
-    return `<Cell><Data ss:Type="${numeric ? "Number" : "String"}">${xmlEscape(cell)}</Data></Cell>`;
-  }).join("")}</Row>`).join("");
-  return `<Worksheet ss:Name="${xmlEscape(name)}"><Table>${header}${body}</Table></Worksheet>`;
-}
-
-function downloadBlob(content, mime, fileName) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
+/* Hàm xuất Excel (.CSV UTF-8 with BOM mở trực tiếp bằng Excel không lỗi font) */
 function exportReportExcel() {
-  const reports = internalSession.reports || { ages: [], preferences: [], surveys: [] };
+  const reports = internalSession.reports || { ages: [], preferences: [] };
   const customers = internalSession.customers;
-  const surveys = reports.surveys?.length ? reports.surveys : internalSession.surveys;
+  const surveys = internalSession.surveys;
   const now = new Date();
-  const surveyResult = internalSession.surveyResults;
-  const questionRows = (surveyResult?.questions || []).flatMap((question, index) =>
-    (question.choices || []).map(choice => [
-      surveyResult.survey.title, `Câu ${index + 1}`, question.content, choice.content,
-      Number(choice.count || 0), Number(choice.percentage || 0)
-    ])
-  );
+  const cell = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
-  const workbook = `<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles><Style ss:ID="Header"><Font ss:Bold="1"/></Style></Styles>
-${excelSheet("Do tuoi", ["Nhom tuoi", "So luong", "Ty le %"], (reports.ages || []).map(item => [item.label, Number(item.count || 0), Number(item.percentage || 0)]))}
-${excelSheet("So thich", ["Nhom so thich", "So luong", "Ty le %"], (reports.preferences || []).map(item => [item.label, Number(item.count || 0), Number(item.percentage || 0)]))}
-${excelSheet("Khao sat", ["Tieu de", "Trang thai", "Nguoi nhan", "Hoan thanh", "Ty le %"], surveys.map(item => [item.title, statusLabel(item.status), Number(item.recipients || 0), Number(item.completed || 0), Number(item.completionRate || 0)]))}
-${excelSheet("Ket qua khao sat", ["Khao sat", "Cau", "Noi dung", "Lua chon", "Luot chon", "Ty le %"], questionRows)}
-${excelSheet("Khach hang", ["Ma TV", "Ho ten", "Dang nhap", "Tuoi", "So thich", "Trang thai"], customers.map(item => [item.code, item.name, item.username || "", Number(item.age || 0), item.preference || "", statusLabel(item.status)]))}
-</Workbook>`;
+  let csv = "\uFEFF"; // UTF-8 BOM
+  csv += "BÁO CÁO TỔNG HỢP NHÂN KHẨU HỌC & HOẠT ĐỘNG KHÁCH HÀNG CRM\n";
+  csv += `Ngày xuất báo cáo:,"${now.toLocaleString("vi-VN")}"\n`;
+  csv += `Người lập báo cáo:,"${internalSession.account?.tenDangNhap || "Manager"}" (Quản lý nghiệp vụ)\n`;
+  csv += `Đơn vị:,"Chuỗi Trà sữa & Cà phê milktea-coffee"\n\n`;
 
-  const fileName = `Bao_Cao_BGĐ_milktea_coffee_${now.toISOString().slice(0, 10)}.xls`;
-  downloadBlob(workbook, "application/vnd.ms-excel", fileName);
-  notify(`Đã xuất file Excel gửi Ban Giám Đốc: ${fileName}`);
+  // 1. Phân bố độ tuổi
+  csv += "--- 1. PHÂN BỐ ĐỘ TUỔI KHÁCH HÀNG ---\n";
+  csv += "Nhóm tuổi,Số lượng khách hàng,Tỷ lệ phần trăm (%)\n";
+  reports.ages.forEach(a => {
+    csv += `${cell(a.label)},${Number(a.count || 0)},${cell(`${Number(a.percentage || 0).toFixed(2)}%`)}\n`;
+  });
+  csv += "\n";
+
+  // 2. Nhóm sở thích
+  csv += "--- 2. PHÂN BỐ NHÓM SỞ THÍCH KHẨU VỊ ---\n";
+  csv += "Nhóm sở thích,Số lượng khách hàng,Tỷ lệ phần trăm (%)\n";
+  reports.preferences.forEach(p => {
+    csv += `${cell(p.label)},${Number(p.count || 0)},${cell(`${Number(p.percentage || 0).toFixed(2)}%`)}\n`;
+  });
+  csv += "\n";
+
+  // 3. Danh sách khách hàng
+  csv += "--- 3. DANH SÁCH KHÁCH HÀNG (CHI TIẾT) ---\n";
+  csv += "Mã thành viên,Họ và tên,Tên đăng nhập,Tuổi,Sở thích mặc định,Trạng thái tài khoản,Ngày cập nhật\n";
+  customers.forEach(c => {
+    csv += [c.code, c.name, c.username, c.age, c.preference, statusLabel(c.status), formatDate(c.updatedAt)].map(cell).join(",") + "\n";
+  });
+  csv += "\n";
+
+  // 4. Danh sách khảo sát
+  csv += "--- 4. TÌNH HÌNH TRIỂN KHAI KHẢO SÁT SẢN PHẨM MỚI ---\n";
+  csv += "Mã khảo sát,Tiêu đề khảo sát,Trạng thái,Số người nhận,Số người hoàn thành,Tỷ lệ hoàn thành (%)\n";
+  surveys.forEach(s => {
+    csv += [s.id, s.title, statusLabel(s.status), s.recipients, s.completed, `${Number(s.completionRate || 0).toFixed(2)}%`].map(cell).join(",") + "\n";
+  });
+  csv += "\n--- 5. KẾT QUẢ CHI TIẾT KHẢO SÁT ---\n";
+  csv += "Khảo sát,Câu hỏi,Lựa chọn,Số lượt chọn,Tỷ lệ (%)\n";
+  internalSession.reportSurveyResults.forEach(result => result.questions.forEach(question => question.choices.forEach(choice => {
+    csv += [result.survey.title, question.content, choice.content, choice.count, `${Number(choice.percentage || 0).toFixed(2)}%`].map(cell).join(",") + "\n";
+  })));
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const fileName = `Bao_Cao_CRM_milktea_coffee_${now.toISOString().slice(0, 10)}.csv`;
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  notify(`Đã xuất file báo cáo: ${fileName}`);
 }
 
 /* Hàm xuất PDF / In báo cáo gửi Ban Giám Đốc */
 function exportReportPdf() {
-  const reports = internalSession.reports || { ages: [], preferences: [], surveys: [] };
-  const surveys = reports.surveys?.length ? reports.surveys : internalSession.surveys;
+  const reports = internalSession.reports || { ages: [], preferences: [] };
+  const customers = internalSession.customers;
+  const surveys = internalSession.surveys;
   const now = new Date();
   const managerName = internalSession.account?.tenDangNhap || "Nguyễn Quản Lý";
-  const surveyResult = internalSession.surveyResults;
 
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
@@ -1111,14 +1034,8 @@ function exportReportPdf() {
         </tbody>
       </table>
 
-      ${surveyResult?.survey ? `<h2>4. Chi tiết kết quả: ${escapeHtml(surveyResult.survey.title)}</h2>
-        ${(surveyResult.questions || []).map((question, index) => `
-          <h3 style="font-size:13px;margin:16px 0 8px">Câu ${index + 1}. ${escapeHtml(question.content)}</h3>
-          <table>
-            <thead><tr><th>Lựa chọn</th><th>Lượt chọn</th><th>Tỷ lệ</th></tr></thead>
-            <tbody>${(question.choices || []).map(choice => `<tr><td>${escapeHtml(choice.content)}</td><td>${choice.count}</td><td>${Number(choice.percentage || 0).toFixed(1)}%</td></tr>`).join("")}</tbody>
-          </table>
-        `).join("")}` : ""}
+      <h2>4. Kết quả chi tiết khảo sát</h2>
+      ${internalSession.reportSurveyResults.map(result => `<h3>${escapeHtml(result.survey.title)}</h3>${result.questions.map(question => `<p><strong>${escapeHtml(question.content)}</strong></p><table><thead><tr><th>Lựa chọn</th><th>Lượt chọn</th><th>Tỷ lệ</th></tr></thead><tbody>${question.choices.map(choice => `<tr><td>${escapeHtml(choice.content)}</td><td>${choice.count}</td><td>${Number(choice.percentage || 0).toFixed(2)}%</td></tr>`).join("")}</tbody></table>`).join("")}`).join("") || "<p>Chưa có dữ liệu khảo sát.</p>"}
 
       <div class="signatures">
         <div>
@@ -1147,8 +1064,8 @@ function adminDashboard() {
   const summary = internalSession.dashboard?.summary || {};
   updateApprovalBadges();
   return `<section class="page-heading compact"><div><p class="eyebrow">QUẢN TRỊ TỐI CAO</p><h1>Trung tâm quản trị Admin</h1><p>Quản lý nhân sự, phán quyết yêu cầu nhạy cảm và giám sát thay đổi dữ liệu khách hàng.</p></div></section>
-  <section class="metrics governance-metrics">${metric("Manager nội bộ", internalSession.managers.length, "Nhân sự", "quản lý tại hệ thống", "blue")}${metric("Khách hàng", summary.totalCustomers ?? "—", "Hồ sơ", "đang lưu trong CRM", "green")}${metric("Yêu cầu chờ duyệt", internalSession.customerRequests.filter(item => item.status === "pending").length, "Cần xử lý", "khóa / mở khóa khách hàng", "amber")}</section>
-  <section class="governance-grid"><button class="panel governance-card" data-view="accounts"><span>01 · NHÂN SỰ</span><h2>Quản lý Manager</h2><p>Tạo tài khoản, cập nhật thông tin công tác và khóa tài khoản nội bộ.</p><strong>Mở quản lý Manager →</strong></button><button class="panel governance-card" data-view="customer-requests"><span>02 · PHÁN QUYẾT</span><h2>Yêu cầu từ Manager</h2><p>Xem xét lý do và phê duyệt hoặc từ chối yêu cầu khóa hoặc mở khóa tài khoản khách hàng.</p><strong>Xem yêu cầu →</strong></button><button class="panel governance-card" data-view="customers"><span>03 · DỮ LIỆU KHÁCH HÀNG</span><h2>Quản lý Customer</h2><p>Trực tiếp khóa hoặc mở khóa tài khoản khách hàng khi cần thiết.</p><strong>Mở danh sách Customer →</strong></button></section>`;
+  <section class="metrics governance-metrics">${metric("Manager nội bộ", internalSession.managers.length, "Nhân sự", "quản lý tại hệ thống", "blue")}${metric("Khách hàng", summary.totalCustomers ?? "—", "Hồ sơ", "đang lưu trong CRM", "green")}${metric("Yêu cầu chờ duyệt", internalSession.customerRequests.filter(item => item.status === "pending").length, "Cần xử lý", "yêu cầu khóa hoặc mở khóa", "amber")}</section>
+  <section class="governance-grid"><button class="panel governance-card" data-view="accounts"><span>01 · NHÂN SỰ</span><h2>Quản lý Manager</h2><p>Tạo tài khoản, cập nhật thông tin công tác và khóa tài khoản nội bộ.</p><strong>Mở quản lý Manager →</strong></button><button class="panel governance-card" data-view="customer-requests"><span>02 · PHÁN QUYẾT</span><h2>Yêu cầu từ Manager</h2><p>Xem xét lý do và phê duyệt hoặc từ chối yêu cầu khóa/mở khóa tài khoản khách hàng.</p><strong>Xem yêu cầu →</strong></button><button class="panel governance-card" data-view="customers"><span>03 · DỮ LIỆU KHÁCH HÀNG</span><h2>Quản lý Customer</h2><p>Trực tiếp khóa hoặc mở khóa tài khoản khách hàng khi cần thiết.</p><strong>Mở danh sách Customer →</strong></button></section>`;
 }
 
 function accountsView() {
@@ -1167,18 +1084,16 @@ function customerRequestsView() {
     pending: requests.filter(item => item.status === "pending").length,
     lock_customer: requests.filter(item => item.status === "pending" && item.action === "lock_customer").length,
     unlock_customer: requests.filter(item => item.status === "pending" && item.action === "unlock_customer").length,
-    manager_unlock: requests.filter(item => item.status === "pending" && item.action === "manager_unlock").length,
     history: requests.filter(item => item.status !== "pending").length
   };
   const tabs = [
     ["pending", "Chờ duyệt"],
     ["lock_customer", "Yêu cầu khóa"],
     ["unlock_customer", "Yêu cầu mở khóa"],
-    ...(admin ? [["manager_unlock", "Mở khóa Manager"]] : []),
     ["history", "Lịch sử"]
   ];
   updateApprovalBadges();
-  return `<section class="page-heading compact"><div><p class="eyebrow">${admin ? "QUẢN TRỊ TỐI CAO" : "YÊU CẦU ĐÃ GỬI"}</p><h1>${admin ? "Trung tâm phê duyệt" : "Yêu cầu đề xuất lên Admin"}</h1><p>${admin ? "Xử lý yêu cầu khóa/mở khóa khách hàng và mở khóa Manager; quyết định được lưu trong lịch sử." : "Theo dõi trạng thái các yêu cầu khóa / mở khóa khách hàng gửi Admin."}</p></div></section>
+  return `<section class="page-heading compact"><div><p class="eyebrow">${admin ? "QUẢN TRỊ TỐI CAO" : "YÊU CẦU ĐÃ GỬI"}</p><h1>${admin ? "Trung tâm phê duyệt" : "Yêu cầu đề xuất lên Admin"}</h1><p>${admin ? "Tập trung xử lý các yêu cầu khóa hoặc mở khóa tài khoản; các phán quyết được lưu trong lịch sử." : "Theo dõi trạng thái các yêu cầu đề xuất khóa / mở khóa khách hàng gửi Admin."}</p></div></section>
     <section class="panel approval-center" id="customerRequestCenter">
       <div class="approval-tabs" role="tablist" aria-label="Lọc yêu cầu khách hàng">${tabs.map(([key, label]) => `<button class="approval-tab ${filters.tab === key ? "active" : ""}" id="approval-tab-${key}" type="button" role="tab" aria-selected="${filters.tab === key}" data-tab="${key}">${label}<span>${tabCounts[key]}</span></button>`).join("")}</div>
       <div class="approval-filters"><label class="approval-search">⌕<input id="approvalSearch" type="search" value="${escapeHtml(filters.query)}" placeholder="${admin ? "Tìm khách hàng, Manager, lý do..." : "Tìm khách hàng hoặc lý do..."}" /></label><label>Từ ngày<input id="approvalFrom" type="date" value="${escapeHtml(filters.from)}" /></label><label>Đến ngày<input id="approvalTo" type="date" value="${escapeHtml(filters.to)}" /></label></div>
@@ -1210,17 +1125,14 @@ function customerRequestResults(requests, filters, admin) {
   const visible = filtered.slice((filters.page - 1) * pageSize, filters.page * pageSize);
   const emptyMessage = filters.tab === "history" ? "Chưa có yêu cầu nào trong lịch sử" : admin ? "Không có yêu cầu phù hợp đang chờ xử lý" : "Bạn chưa gửi yêu cầu nào";
   const cards = visible.map(item => {
-    const isManagerUnlock = item.action === "manager_unlock";
-    const isUnlock = item.action === "unlock_customer" || isManagerUnlock;
-    const tagBadge = isManagerUnlock
-      ? `<span class="request-tag" style="color:#4c8098;background:#e8f2f7;padding:3px 8px;border-radius:6px;font-weight:700">🔐 Mở khóa Manager</span>`
-      : isUnlock
+    const isUnlock = item.action === "unlock_customer";
+    const tagBadge = isUnlock
       ? `<span class="request-tag" style="color:var(--green);background:#e5f3ed;padding:3px 8px;border-radius:6px;font-weight:700">🔓 Yêu cầu mở khóa</span>`
       : `<span class="request-tag" style="color:#c04a36;background:#fdece8;padding:3px 8px;border-radius:6px;font-weight:700">⚑ Yêu cầu khóa</span>`;
-    const approveLabel = isManagerUnlock ? "Phê duyệt & mở khóa Manager" : isUnlock ? "Phê duyệt & mở khóa" : "Phê duyệt & khóa";
+    const approveLabel = isUnlock ? "Phê duyệt & mở khóa" : "Phê duyệt & khóa";
     const approveColor = isUnlock ? "background:var(--green);border-color:var(--green)" : "";
 
-    return `<article class="panel request-card"><div class="request-heading"><div><span class="status ${item.status === "pending" ? "new" : item.status === "approved" ? "active" : "locked"}">${item.status === "pending" ? "Chờ duyệt" : item.status === "approved" ? "Đã duyệt" : "Đã từ chối"}</span><h2>${escapeHtml(item.customerName || "Khách hàng không còn tồn tại")}</h2><p>${isManagerUnlock ? "Tài khoản Manager" : "Manager"}: ${escapeHtml(item.requesterName || item.requesterUsername || "Bạn")} · ${formatDate(item.createdAt)}</p></div>${tagBadge}</div><p class="request-reason"><strong>Lý do:</strong> ${escapeHtml(item.reason)}</p>${item.decisionNote ? `<p class="form-note"><strong>Ghi chú Admin:</strong> ${escapeHtml(item.decisionNote)}</p>` : ""}${admin && item.status === "pending" ? `<footer><button class="outline request-reject" data-id="${item.id}" data-action="${item.action}">Từ chối</button><button class="primary request-approve" data-id="${item.id}" data-action="${item.action}" style="${approveColor}">${approveLabel}</button></footer>` : ""}</article>`;
+    return `<article class="panel request-card"><div class="request-heading"><div><span class="status ${item.status === "pending" ? "new" : item.status === "approved" ? "active" : "locked"}">${item.status === "pending" ? "Chờ duyệt" : item.status === "approved" ? "Đã duyệt" : "Đã từ chối"}</span><h2>${escapeHtml(item.customerName || "Khách hàng không còn tồn tại")}</h2><p>Manager: ${escapeHtml(item.requesterName || item.requesterUsername || "Bạn")} · ${formatDate(item.createdAt)}</p></div>${tagBadge}</div><p class="request-reason"><strong>Lý do:</strong> ${escapeHtml(item.reason)}</p>${item.decisionNote ? `<p class="form-note"><strong>Ghi chú Admin:</strong> ${escapeHtml(item.decisionNote)}</p>` : ""}${admin && item.status === "pending" ? `<footer><button class="outline request-reject" data-id="${item.id}" data-action="${item.action}">Từ chối</button><button class="primary request-approve" data-id="${item.id}" data-action="${item.action}" style="${approveColor}">${approveLabel}</button></footer>` : ""}</article>`;
   }).join("");
   const start = filtered.length ? (filters.page - 1) * pageSize + 1 : 0;
   const end = Math.min(filters.page * pageSize, filtered.length);
@@ -1245,7 +1157,7 @@ function updateApprovalBadges() {
 function internalLoginView() {
   const portalName = internalApi.portal === "admin" ? "Admin" : "Manager";
   const demoAccount = internalApi.portal === "admin" ? "admin" : "quanly";
-  return `<section class="auth-shell"><div class="auth-story"><span class="welcome-chip">CỔNG ${portalName.toUpperCase()} CRM</span><h1>Quản lý dữ liệu<br/>toàn chuỗi.</h1><p>Đăng nhập bằng tài khoản ${portalName} để truy cập dữ liệu thật.</p></div><div><form class="auth-card" id="internalLoginForm"><div class="form-heading"><p class="eyebrow">KHU VỰC ${portalName.toUpperCase()}</p><h2>Đăng nhập</h2><p>Phiên làm việc được phân quyền tại API.</p></div><label>Tên đăng nhập<input name="tenDangNhap" autocomplete="username" required /></label><label>Mật khẩu<input name="matKhau" type="password" autocomplete="current-password" required /></label><div class="auth-error" id="internalAuthError" role="alert"></div><button class="primary auth-submit" type="submit">Đăng nhập →</button><small>Demo: ${demoAccount} / DemoCRM@2026</small></form>${internalApi.portal === "manager" ? `<form class="auth-card" id="managerUnlockForm" style="margin-top:16px"><details><summary><strong>Tài khoản Manager bị khóa?</strong> Gửi yêu cầu Admin mở khóa</summary><div style="display:grid;gap:12px;margin-top:16px"><label>Tên đăng nhập<input name="tenDangNhap" autocomplete="username" required /></label><label>Mật khẩu xác minh<input name="matKhau" type="password" autocomplete="current-password" required /></label><label>Lý do đề nghị mở khóa<textarea name="reason" minlength="5" maxlength="2000" rows="3" required></textarea></label><div class="auth-error" id="managerUnlockError" role="alert"></div><button class="outline" type="submit">Gửi yêu cầu mở khóa</button></div></details></form>` : ""}</div></section>`;
+  return `<section class="auth-shell"><div class="auth-story"><span class="welcome-chip">CỔNG ${portalName.toUpperCase()} CRM</span><h1>Quản lý dữ liệu<br/>toàn chuỗi.</h1><p>Đăng nhập bằng tài khoản ${portalName} để truy cập dữ liệu thật.</p></div><form class="auth-card" id="internalLoginForm"><div class="form-heading"><p class="eyebrow">KHU VỰC ${portalName.toUpperCase()}</p><h2>Đăng nhập</h2><p>Phiên làm việc được phân quyền tại API.</p></div><label>Tên đăng nhập<input name="tenDangNhap" autocomplete="username" required /></label><label>Mật khẩu<input name="matKhau" type="password" autocomplete="current-password" required /></label><div class="auth-error" id="internalAuthError" role="alert"></div><button class="primary auth-submit" type="submit">Đăng nhập →</button><small>Demo: ${demoAccount} / DemoCRM@2026</small></form></section>`;
 }
 
 function adminCatalogView() {
@@ -1263,7 +1175,7 @@ function registerView() {
 
 function customerHome() {
   return `<section class="customer-hero"><div><span class="welcome-chip">THÀNH VIÊN MILKTEA-COFFEE</span><h1 id="customerGreeting">Xin chào!</h1><p>Một ngày thật dịu dàng cùng ly trà bạn yêu thích.</p><div class="member-code"><span>Mã thành viên</span><strong id="customerMemberCode">—</strong></div></div><div class="hero-cup" aria-hidden="true"><span>MC</span></div></section>
-  <section class="customer-stats"><article><span class="soft-icon">✓</span><div><small>Khảo sát đã hoàn thành</small><strong id="custStatCompleted">0</strong><p>Đóng góp ý kiến cho quán</p></div></article><article><span class="soft-icon amber">☆</span><div><small>Đánh giá trung bình</small><strong id="custStatAvg">4.8</strong><p>Cảm ơn những chia sẻ của bạn</p></div></article><article><span class="soft-icon rose">◌</span><div><small>Phản hồi đã gửi</small><strong id="custStatFeedback">0</strong><p>100% đã được tiếp nhận</p></div></article></section>
+  <section class="customer-stats"><article><span class="soft-icon">✓</span><div><small>Khảo sát đã hoàn thành</small><strong id="custStatCompleted">0</strong><p>Đóng góp ý kiến cho quán</p></div></article><article><span class="soft-icon amber">☆</span><div><small>Đánh giá trung bình</small><strong id="custStatAvg">4.8</strong><p>Cảm ơn những chia sẻ của bạn</p></div></article><article><span class="soft-icon rose">◌</span><div><small>Phản hồi đã gửi</small><strong id="custStatFeedback">0</strong><p id="feedbackStatusNote">100% đã được tiếp nhận</p></div></article></section>
   <section class="customer-layout"><div><div class="section-title"><div><p class="eyebrow">DÀNH CHO BẠN</p><h2>Khảo sát đang chờ</h2></div><button class="text-button" data-view="my-surveys">Xem tất cả →</button></div><article class="task-card"><div class="task-art">☕</div><div class="task-copy"><span class="status active">Đang mở</span><h3>Khảo sát sản phẩm mới</h3><p>Chia sẻ trải nghiệm gần nhất của bạn tại milktea-coffee.</p><div class="task-meta"><span>◷ Khoảng 3 phút</span><span>▣ Đang mở</span></div></div><button class="primary" id="startSurvey">Bắt đầu →</button></article></div><aside class="panel quick-actions"><div class="panel-title"><div><h2>Truy cập nhanh</h2><p>Chúng tôi luôn muốn lắng nghe bạn</p></div></div><button data-view="my-feedback"><span>♡</span><div><strong>Gửi phản hồi</strong><small>Chia sẻ trải nghiệm đồ uống</small></div><b>→</b></button><button data-view="profile"><span>♧</span><div><strong>Cập nhật hồ sơ</strong><small>Sở thích và thông tin cá nhân</small></div><b>→</b></button></aside></section>`;
 }
 
@@ -1276,7 +1188,7 @@ function myFeedbackView() {
 }
 
 function mySurveysView() {
-  return `<section class="page-heading compact"><div><p class="eyebrow">Ý KIẾN CỦA BẠN</p><h1>Khảo sát của tôi</h1><p>Các khảo sát được gửi riêng đến tài khoản của bạn.</p></div></section><div id="surveyList" class="survey-list"><article class="panel empty-state"><h2>Đang tải khảo sát...</h2></article></div>`;
+  return `<section class="page-heading compact"><div><p class="eyebrow">Ý KIẾN CỦA BẠN</p><h1>Khảo sát của tôi</h1><p>Các khảo sát được gửi riêng đến tài khoản của bạn.</p></div></section><section class="survey-filter-panel panel"><div class="survey-filter-counts"><span><strong id="allSurveyCount">—</strong><small>Tất cả</small></span><span><strong id="pendingSurveyCount">—</strong><small>Đang chờ</small></span><span><strong id="completedSurveyFilterCount">—</strong><small>Đã hoàn thành</small></span></div><div class="segmented survey-filters" aria-label="Lọc khảo sát"><button type="button" data-survey-filter="pending">Đang chờ</button><button type="button" data-survey-filter="completed">Đã hoàn thành</button><button type="button" data-survey-filter="all">Tất cả</button></div></section><div id="surveyList" class="survey-list"><article class="panel empty-state"><h2>Đang tải khảo sát...</h2></article></div>`;
 }
 
 function surveyTakeView() {
@@ -1328,7 +1240,13 @@ const adminViews = {
   accounts: accountsView,
   customers: customersView,
   "customer-requests": customerRequestsView,
-  "admin-catalog": adminCatalogView
+  "admin-catalog": adminCatalogView,
+  feedback: feedbackView,
+  surveys: surveysView,
+  "create-survey": createSurveyView,
+  "edit-survey": editSurveyView,
+  "survey-results": surveyResultsView,
+  reports: customerReportsView
 };
 
 const customerViews = {
@@ -1369,13 +1287,13 @@ const titles = {
   "my-surveys": "Khảo sát của tôi",
   notifications: "Thông báo",
   "take-survey": "Thực hiện khảo sát",
-  "completed-survey": "Kết quả khảo sát",
+  "completed-survey": "Kết quả khảo sát đã hoàn thành",
   help: "Trung tâm trợ giúp"
 };
 
 const navs = {
-  admin: `<p class="nav-label">Quản trị tối cao</p><button class="nav-item" data-view="admin-dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="accounts"><span class="icon">♧</span>Quản lý Manager</button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Trung tâm phê duyệt <b id="approvalNavCount" hidden></b></button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng</button>`,
-  manager: `<p class="nav-label">Không gian làm việc</p><button class="nav-item" data-view="dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng <b id="customerCount">…</b></button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Yêu cầu Admin <b id="managerReqBadge" hidden></b></button><button class="nav-item" data-view="feedback"><span class="icon">◌</span>Phản hồi <i id="feedbackCount">…</i></button><button class="nav-item" data-view="surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="admin-catalog"><span class="icon">☕</span>Đồ uống</button><button class="nav-item" data-view="reports"><span class="icon">⌁</span>Báo cáo</button>`,
+  admin: `<p class="nav-label">Quản trị tối cao</p><button class="nav-item" data-view="admin-dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="accounts"><span class="icon">♧</span>Quản lý Manager</button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Trung tâm phê duyệt <b id="approvalNavCount" hidden></b></button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng</button><button class="nav-item" data-view="surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="reports"><span class="icon">⌁</span>Báo cáo</button>`,
+  manager: `<p class="nav-label">Không gian làm việc</p><button class="nav-item" data-view="dashboard"><span class="icon">⌂</span>Tổng quan</button><button class="nav-item" data-view="customers"><span class="icon">♧</span>Khách hàng <b id="customerCount">…</b></button><button class="nav-item" data-view="customer-requests"><span class="icon">◌</span>Yêu cầu Admin</button><button class="nav-item" data-view="feedback"><span class="icon">◌</span>Phản hồi <i id="feedbackCount">…</i></button><button class="nav-item" data-view="surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="admin-catalog"><span class="icon">☕</span>Đồ uống</button><button class="nav-item" data-view="reports"><span class="icon">⌁</span>Báo cáo</button>`,
   customer: `<p class="nav-label">Tài khoản của tôi</p><button class="nav-item" data-view="customer-home"><span class="icon">⌂</span>Trang chủ</button><button class="nav-item" data-view="profile"><span class="icon">♧</span>Hồ sơ cá nhân</button><button class="nav-item" data-view="my-feedback"><span class="icon">♡</span>Phản hồi của tôi</button><button class="nav-item" data-view="my-surveys"><span class="icon">✓</span>Khảo sát</button><button class="nav-item" data-view="notifications"><span class="icon">♢</span>Thông báo <i id="notificationCount">0</i></button><p class="nav-label">Hỗ trợ</p><button class="nav-item" data-view="help"><span class="icon">?</span>Trung tâm trợ giúp</button>`
 };
 
@@ -1438,12 +1356,6 @@ async function setupCustomerPage(view) {
       payload.namSinh = Number(payload.namSinh); payload.soThichId = Number(payload.soThichId);
       const data = await customerApi.register(payload); customerSession.profile = data.profile;
       notify("Đăng ký thành công"); applyRole("customer");
-      payload.namSinh = Number(payload.namSinh);
-      payload.soThichId = Number(payload.soThichId);
-      const data = await customerApi.register(payload);
-      customerSession.profile = data.profile;
-      notify("Đăng ký thành viên thành công");
-      applyRole("customer");
     } catch (error) { showError(error); setFormBusy(form, false); }
   });
 
@@ -1465,29 +1377,19 @@ async function setupCustomerPage(view) {
       document.querySelector("#customerMemberCode").textContent = profile.maThanhVien;
       const [surveyData, feedbackData] = await Promise.all([customerApi.surveys(), customerApi.feedback()]);
       const completedSurveys = surveyData.surveys.filter(survey => survey.ngayHoanThanh).length;
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const completedThisMonth = surveyData.surveys.filter(survey => {
-        if (!survey.ngayHoanThanh) return false;
-        const completedAt = new Date(survey.ngayHoanThanh);
-        return completedAt.getMonth() === currentMonth && completedAt.getFullYear() === currentYear;
-      }).length;
       const availableSurveys = surveyData.surveys.filter(survey =>
         !survey.ngayHoanThanh && survey.trangThai === "dang_mo" &&
         (!survey.ngayKetThuc || new Date(survey.ngayKetThuc) > new Date())
       );
       const handledFeedback = feedbackData.feedback.filter(item => item.trangThai !== "moi").length;
-      document.querySelector("#completedSurveyCount").textContent = completedSurveys;
-      document.querySelector("#completedSurveyNote").textContent = completedThisMonth
-        ? `${completedThisMonth} khảo sát trong tháng này`
-        : "Chưa hoàn thành khảo sát trong tháng này";
-      document.querySelector("#averageRating").textContent = feedbackData.feedback.length
+      const completedCount = document.querySelector("#custStatCompleted");
+      if (completedCount) completedCount.textContent = completedSurveys;
+      const averageRating = document.querySelector("#custStatAvg");
+      if (averageRating) averageRating.textContent = feedbackData.feedback.length
         ? (feedbackData.feedback.reduce((sum, item) => sum + Number(item.soSao), 0) / feedbackData.feedback.length).toFixed(1)
         : "—";
-      document.querySelector("#averageRatingNote").textContent = feedbackData.feedback.length
-        ? `Tính từ ${feedbackData.feedback.length} phản hồi đã gửi`
-        : "Chưa có đánh giá nào";
-      document.querySelector("#feedbackCountCustomer").textContent = feedbackData.feedback.length;
+      const feedbackCount = document.querySelector("#custStatFeedback");
+      if (feedbackCount) feedbackCount.textContent = feedbackData.feedback.length;
       document.querySelector("#feedbackStatusNote").textContent = feedbackData.feedback.length
         ? `${handledFeedback}/${feedbackData.feedback.length} phản hồi đã được xử lý`
         : "Hãy gửi phản hồi đầu tiên của bạn";
@@ -1505,7 +1407,6 @@ async function setupCustomerPage(view) {
         taskCard.querySelector(".task-meta span:last-child").textContent = survey.ngayKetThuc
           ? `▣ Hạn ${new Date(survey.ngayKetThuc).toLocaleDateString("vi-VN")}`
           : "▣ Không giới hạn thời gian";
-        taskCard.insertAdjacentHTML("beforeend", `<button class="primary" id="startSurvey">Bắt đầu →</button>`);
         taskCard.querySelector("#startSurvey").addEventListener("click", async () => {
           try {
             customerSession.currentSurvey = (await customerApi.survey(survey.id)).survey;
@@ -1685,9 +1586,12 @@ async function setupCustomerPage(view) {
         (!survey.ngayKetThuc || new Date(survey.ngayKetThuc) > new Date());
       const pendingCount = surveys.filter(isAvailable).length;
       const completedCount = surveys.filter(survey => Boolean(survey.ngayHoanThanh)).length;
-      document.querySelector("#pendingSurveyCount").textContent = pendingCount;
-      document.querySelector("#completedSurveyFilterCount").textContent = completedCount;
-      document.querySelector("#allSurveyCount").textContent = surveys.length;
+      const pendingSurveyCount = document.querySelector("#pendingSurveyCount");
+      const completedSurveyFilterCount = document.querySelector("#completedSurveyFilterCount");
+      const allSurveyCount = document.querySelector("#allSurveyCount");
+      if (pendingSurveyCount) pendingSurveyCount.textContent = pendingCount;
+      if (completedSurveyFilterCount) completedSurveyFilterCount.textContent = completedCount;
+      if (allSurveyCount) allSurveyCount.textContent = surveys.length;
 
       const openSurvey = async surveyId => {
         try {
@@ -1878,20 +1782,6 @@ async function setupInternalPage(view, renderVersion) {
         setFormBusy(form, false);
       }
     });
-    document.querySelector("#managerUnlockForm")?.addEventListener("submit", async event => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      setFormBusy(form, true);
-      try {
-        await internalApi.createManagerUnlockRequest(formPayload(form));
-        notify("Đã gửi yêu cầu mở khóa đến Admin");
-        form.reset();
-      } catch (error) {
-        document.querySelector("#managerUnlockError").textContent = error.message;
-      } finally {
-        setFormBusy(form, false);
-      }
-    });
     return;
   }
 
@@ -1912,8 +1802,7 @@ async function setupInternalPage(view, renderVersion) {
         ]);
         internalSession.dashboard = dData;
         internalSession.managers = mData.managers;
-        const managerUnlocks = await internalApi.managerUnlockRequests();
-        internalSession.customerRequests = [...rData.requests, ...managerUnlocks.requests];
+        internalSession.customerRequests = rData.requests;
       },
       dashboard: async () => {
         const [dashData, custList, fbList, reqList] = await Promise.all([
@@ -1925,21 +1814,12 @@ async function setupInternalPage(view, renderVersion) {
         internalSession.customerRequests = reqList.requests;
       },
       customers: async () => {
-        const [custList, catList, reqList] = await Promise.all([
-          internalApi.customers(),
-          internalApi.catalogs(),
-          currentRole === "manager" ? internalApi.customerRequests() : Promise.resolve({ requests: internalSession.customerRequests })
-        ]);
+        const [custList, catList] = await Promise.all([internalApi.customers(), internalApi.catalogs()]);
         internalSession.customers = custList.customers;
         internalSession.catalogs = catList;
-        if (reqList.requests) internalSession.customerRequests = reqList.requests;
       },
       "create-customer": async () => { internalSession.catalogs ||= await internalApi.catalogs(); },
-      "customer-requests": async () => {
-        const result = await internalApi.customerRequests();
-        const managerUnlocks = currentRole === "admin" ? await internalApi.managerUnlockRequests() : { requests: [] };
-        internalSession.customerRequests = [...result.requests, ...managerUnlocks.requests];
-      },
+      "customer-requests": async () => { internalSession.customerRequests = (await internalApi.customerRequests()).requests; },
       feedback: async () => { internalSession.feedback = (await internalApi.feedback()).feedback; },
       surveys: async () => { internalSession.surveys = (await internalApi.surveys()).surveys; },
       "create-survey": async () => {
@@ -1955,9 +1835,8 @@ async function setupInternalPage(view, renderVersion) {
         internalSession.customers = custList.customers;
         internalSession.surveys = survList.surveys;
         internalSession.feedback = fbList.feedback;
-        if (internalSession.reportSurveyId) {
-          internalSession.surveyResults = await internalApi.surveyResults(internalSession.reportSurveyId);
-        }
+        internalSession.reportSurveyResults = (await Promise.all(survList.surveys.map(survey => internalApi.surveyResults(survey.id))))
+          .filter(result => result.questions.some(question => question.choices.length));
       },
       accounts: async () => { internalSession.managers = (await internalApi.managers()).managers; },
       catalog: async () => { internalSession.catalogs = await internalApi.catalogs(); },
@@ -2066,10 +1945,9 @@ async function setupInternalPage(view, renderVersion) {
     // Lọc realtime danh sách khách hàng
     const applyCustomerFilters = () => {
       const q = document.querySelector("#customerSearchInput")?.value || "";
-      const reg = document.querySelector("#customerRegionFilter")?.value || "";
       const pref = document.querySelector("#customerPrefFilter")?.value || "";
       const st = document.querySelector("#customerStatusFilter")?.value || "";
-      internalSession.customerFilters = { query: q, region: reg, preference: pref, status: st };
+      internalSession.customerFilters = { query: q, preference: pref, status: st };
       render("customers");
     };
 
@@ -2077,8 +1955,6 @@ async function setupInternalPage(view, renderVersion) {
       internalSession.customerFilters.query = e.target.value;
       const filtered = internalSession.customers.filter(c => {
         const q = e.target.value.toLowerCase();
-        const reg = getCustomerRegion(c);
-        if (internalSession.customerFilters.region && reg !== internalSession.customerFilters.region) return false;
         if (internalSession.customerFilters.preference && String(c.preferenceId) !== String(internalSession.customerFilters.preference)) return false;
         if (internalSession.customerFilters.status && c.status !== internalSession.customerFilters.status) return false;
         return `${c.name} ${c.code} ${c.username || ""} ${c.preference || ""}`.toLowerCase().includes(q);
@@ -2088,7 +1964,6 @@ async function setupInternalPage(view, renderVersion) {
         : `<article class="panel empty-state"><h2>Không tìm thấy khách hàng phù hợp</h2></article>`;
     });
 
-    document.querySelector("#customerRegionFilter")?.addEventListener("change", applyCustomerFilters);
     document.querySelector("#customerPrefFilter")?.addEventListener("change", applyCustomerFilters);
     document.querySelector("#customerStatusFilter")?.addEventListener("change", applyCustomerFilters);
 
@@ -2104,7 +1979,6 @@ async function setupInternalPage(view, renderVersion) {
         document.querySelector("#editCustomerBirthYear").value = customer.birth_year || customer.birthYear || (new Date().getFullYear() - customer.age);
         document.querySelector("#editCustomerGender").value = customer.gender || "khong_cung_cap";
         document.querySelector("#editCustomerPreference").value = customer.preferenceId || "";
-        document.querySelector("#editCustomerRegion").value = getCustomerRegion(customer);
         document.querySelector("#customerEditError").textContent = "";
         customerEditDialog.showModal();
       });
@@ -2126,10 +2000,6 @@ async function setupInternalPage(view, renderVersion) {
       setFormBusy(form, true);
       try {
         await internalApi.updateCustomer(id, payload);
-        // Lưu phân vùng vào bộ nhớ
-        const cObj = internalSession.customers.find(c => String(c.id) === String(id));
-        if (cObj) cObj.region = form.elements.phanVung.value;
-
         internalSession.loaded.delete("customers");
         internalSession.loaded.delete("dashboard");
         notify("Đã cập nhật hồ sơ khách hàng thành công");
@@ -2179,7 +2049,7 @@ async function setupInternalPage(view, renderVersion) {
 
         document.querySelector("#lockDialogAvatar").textContent = initials(customer.name);
         document.querySelector("#lockDialogName").textContent = customer.name;
-        document.querySelector("#lockDialogCode").textContent = `Mã TV: ${customer.code} · ${regionLabel(getCustomerRegion(customer))} · Trạng thái: ${statusLabel(customer.status)}`;
+        document.querySelector("#lockDialogCode").textContent = `Mã TV: ${customer.code} · Trạng thái: ${statusLabel(customer.status)}`;
         document.querySelector("#lockReasonCount").textContent = "0";
         document.querySelector("#customerLockError").textContent = "";
         customerLockDialog.showModal();
@@ -2209,7 +2079,6 @@ async function setupInternalPage(view, renderVersion) {
         });
         internalSession.loaded.delete("customer-requests");
         internalSession.loaded.delete("dashboard");
-        internalSession.loaded.delete("customers");
         notify(isUnlock ? "Đã gửi đề xuất mở khóa lên Admin chờ phê duyệt" : "Đã gửi đề xuất khóa lên Admin chờ phê duyệt");
         customerLockDialog.close();
         render("customers");
@@ -2383,11 +2252,8 @@ async function setupInternalPage(view, renderVersion) {
         } else if (mode === "filtered") {
           const prefVal = document.querySelector("#surveyFilterPref")?.value;
           const ageVal = document.querySelector("#surveyFilterAge")?.value;
-          const regVal = document.querySelector("#surveyFilterRegion")?.value;
-
           const matched = activeCusts.filter(c => {
             if (prefVal && String(c.preferenceId) !== String(prefVal)) return false;
-            if (regVal && getCustomerRegion(c) !== regVal) return false;
             if (ageVal) {
               const age = c.age || (new Date().getFullYear() - (c.birth_year || c.birthYear || 2000));
               if (ageVal === "under18" && age >= 18) return false;
@@ -2430,7 +2296,6 @@ async function setupInternalPage(view, renderVersion) {
       targetModeInputs.forEach(i => i.addEventListener("change", updateTargetCounts));
       document.querySelector("#surveyFilterPref")?.addEventListener("change", updateTargetCounts);
       document.querySelector("#surveyFilterAge")?.addEventListener("change", updateTargetCounts);
-      document.querySelector("#surveyFilterRegion")?.addEventListener("change", updateTargetCounts);
       document.querySelector("#surveyRecipients")?.addEventListener("change", updateTargetCounts);
 
       // Thêm câu hỏi
@@ -2490,11 +2355,8 @@ async function setupInternalPage(view, renderVersion) {
         } else if (mode === "filtered") {
           const prefVal = document.querySelector("#surveyFilterPref")?.value;
           const ageVal = document.querySelector("#surveyFilterAge")?.value;
-          const regVal = document.querySelector("#surveyFilterRegion")?.value;
-
           const matched = activeCusts.filter(c => {
             if (prefVal && String(c.preferenceId) !== String(prefVal)) return false;
-            if (regVal && getCustomerRegion(c) !== regVal) return false;
             if (ageVal) {
               const age = c.age || (new Date().getFullYear() - (c.birth_year || c.birthYear || 2000));
               if (ageVal === "under18" && age >= 18) return false;
@@ -2595,47 +2457,6 @@ async function setupInternalPage(view, renderVersion) {
       internalSession.loaded.delete("reports");
       render("reports");
     });
-    document.querySelector("#reportSurveySelect")?.addEventListener("change", async event => {
-      internalSession.reportSurveyId = event.target.value;
-      if (!internalSession.reportSurveyId) {
-        render("reports");
-        return;
-      }
-      try {
-        internalSession.surveyResults = await internalApi.surveyResults(internalSession.reportSurveyId);
-        render("reports");
-      } catch (error) {
-        notify(error.message);
-      }
-    });
-    if (reportRefreshTimer) {
-      clearInterval(reportRefreshTimer);
-      reportRefreshTimer = null;
-    }
-    if (view === "reports") {
-      reportRefreshTimer = setInterval(async () => {
-        if (document.querySelector(".nav-item.active")?.dataset.view !== "reports") {
-          clearInterval(reportRefreshTimer);
-          reportRefreshTimer = null;
-          return;
-        }
-        try {
-          internalSession.loaded.delete("reports");
-          const [repData, custList, survList, fbList] = await Promise.all([
-            internalApi.customerReports(), internalApi.customers(), internalApi.surveys(), internalApi.feedback()
-          ]);
-          internalSession.reports = repData;
-          internalSession.customers = custList.customers;
-          internalSession.surveys = survList.surveys;
-          internalSession.feedback = fbList.feedback;
-          if (internalSession.reportSurveyId) {
-            internalSession.surveyResults = await internalApi.surveyResults(internalSession.reportSurveyId);
-          }
-          internalSession.loaded.add("reports");
-          render("reports");
-        } catch { /* giữ màn hình hiện tại nếu API tạm lỗi */ }
-      }, 30000);
-    }
 
     /* ── 6. Admin Quản lý Manager & Phê duyệt yêu cầu ──────────────────── */
     document.querySelector("#createManagerForm")?.addEventListener("submit", async event => {
@@ -2659,24 +2480,21 @@ async function setupInternalPage(view, renderVersion) {
       const decisionButton = event.target.closest(".request-approve, .request-reject");
       if (decisionButton) {
         const approved = decisionButton.classList.contains("request-approve");
-        const action = decisionButton.dataset.action;
-        const isUnlock = action === "unlock_customer" || action === "manager_unlock";
-        const isManagerUnlock = action === "manager_unlock";
+        const isUnlock = decisionButton.dataset.action === "unlock_customer";
         const note = approved ? "" : window.prompt("Ghi chú khi từ chối yêu cầu (không bắt buộc):", "");
         if (note === null) return;
         const confirmMsg = approved
-          ? (isManagerUnlock ? "Phê duyệt yêu cầu mở khóa tài khoản Manager này?" : isUnlock ? "Phê duyệt yêu cầu mở khóa tài khoản khách hàng này?" : "Phê duyệt yêu cầu khóa tài khoản khách hàng này?")
+          ? (isUnlock ? "Phê duyệt yêu cầu mở khóa tài khoản khách hàng này?" : "Phê duyệt yêu cầu khóa tài khoản khách hàng này?")
           : (isUnlock ? "Từ chối yêu cầu mở khóa này?" : "Từ chối yêu cầu khóa này?");
         if (!window.confirm(confirmMsg)) return;
         decisionButton.disabled = true;
         try {
-          if (isManagerUnlock) await internalApi.decideManagerUnlockRequest(decisionButton.dataset.id, approved ? "approved" : "rejected", note);
-          else await internalApi.decideCustomerRequest(decisionButton.dataset.id, approved ? "approved" : "rejected", note);
+          await internalApi.decideCustomerRequest(decisionButton.dataset.id, approved ? "approved" : "rejected", note);
           internalSession.loaded.delete("customer-requests");
           internalSession.loaded.delete("admin-dashboard");
           internalSession.loaded.delete("customers");
           notify(approved
-            ? (isManagerUnlock ? "Đã phê duyệt và mở khóa tài khoản Manager" : isUnlock ? "Đã phê duyệt và mở khóa tài khoản khách hàng" : "Đã phê duyệt và khóa tài khoản khách hàng")
+            ? (isUnlock ? "Đã phê duyệt và mở khóa tài khoản khách hàng" : "Đã phê duyệt và khóa tài khoản khách hàng")
             : "Đã từ chối yêu cầu");
           render("customer-requests");
         } catch (error) {
@@ -2765,44 +2583,6 @@ async function setupInternalPage(view, renderVersion) {
         setFormBusy(form, false);
       }
     });
-    if (view === "create-survey" || view === "edit-survey") {
-      const isEdit = view === "edit-survey";
-      const form = document.querySelector(isEdit ? "#editSurveyForm" : "#bulkSurveyForm");
-      const recipients = document.querySelector("#surveyRecipients");
-      if (recipients) {
-        document.querySelectorAll("input[name='recipientMode']").forEach(input => input.addEventListener("change", () => {
-          recipients.disabled = formPayload(form).recipientMode !== "selected";
-        }));
-      }
-      document.querySelector("#addSurveyQuestion")?.addEventListener("click", () => {
-        document.querySelector("#surveyQuestions").insertAdjacentHTML("beforeend", `<div class="form-grid survey-question-input"><label>Câu hỏi *<input name="question" minlength="3" required /></label><label>Các lựa chọn *<input name="choices" maxlength="5000" placeholder="Lựa chọn 1; Lựa chọn 2" required /></label><button type="button" class="outline remove-survey-question">Xóa câu hỏi</button></div>`);
-      });
-      document.querySelector("#surveyQuestions")?.addEventListener("click", event => {
-        if (event.target.closest(".remove-survey-question")) {
-          if (document.querySelectorAll(".survey-question-input").length <= 1) {
-            notify("Khảo sát phải có ít nhất một câu hỏi");
-            return;
-          }
-          event.target.closest(".survey-question-input").remove();
-        }
-      });
-      form?.addEventListener("submit", async event => {
-        event.preventDefault();
-        const payload = formPayload(form);
-        const questions = [...form.querySelectorAll(".survey-question-input")].map(row => ({ content: row.querySelector('[name="question"]').value.trim(), choices: row.querySelector('[name="choices"]').value.split(";").map(value => value.trim()).filter(Boolean) }));
-        const deadline = payload.endAt ? new Date(payload.endAt) : null;
-        const originalDeadline = isEdit && internalSession.editSurvey.endAt ? new Date(internalSession.editSurvey.endAt) : null;
-        const keepsExpiredDeadline = deadline && originalDeadline && Math.floor(deadline.getTime() / 60000) === Math.floor(originalDeadline.getTime() / 60000);
-        if (deadline && (!Number.isFinite(deadline.getTime()) || (deadline.getTime() <= Date.now() && !keepsExpiredDeadline))) {
-          document.querySelector("#surveyError").textContent = "Hạn khảo sát phải là thời điểm trong tương lai. Vui lòng chọn lại ngày giờ.";
-          return;
-        }
-        const recipientMode = isEdit ? null : form.querySelector("input[name='recipientMode']:checked").value;
-        const customerIds = isEdit ? undefined : recipientMode === "all" ? null : [...recipients.selectedOptions].map(option => Number(option.value));
-        const button = form.querySelector("button[type='submit']");
-        button.dataset.label = isEdit ? "Lưu thay đổi" : "Phát hành và thông báo";
-        setFormBusy(form, true);
-
     // Admin trực tiếp khóa/mở khóa Customer
     document.querySelectorAll(".customer-status").forEach(button => {
       button.addEventListener("click", async () => {
@@ -2843,6 +2623,7 @@ function render(view = "dashboard") {
   const renderVersion = ++navigationVersion;
   document.body.classList.toggle("auth-mode", ["internal-login", "login", "register"].includes(view));
   app.innerHTML = views[view]();
+  decorateSectionIcons();
   app.classList.remove("page-enter");
   requestAnimationFrame(() => app.classList.add("page-enter"));
 
@@ -2857,6 +2638,33 @@ function render(view = "dashboard") {
 
   setupCustomerPage(view);
   setupInternalPage(view, renderVersion);
+}
+
+function decorateSectionIcons() {
+  const headingIcons = [
+    { terms: ["khảo sát", "câu hỏi"], icon: "▤" },
+    { terms: ["báo cáo", "biểu đồ", "thống kê", "tăng trưởng", "phân bố"], icon: "▥" },
+    { terms: ["khách hàng", "customer", "nhân khẩu"], icon: "♧" },
+    { terms: ["phản hồi", "hài lòng", "khiếu nại"], icon: "♡" },
+    { terms: ["manager", "nhân sự", "tài khoản"], icon: "♙" },
+    { terms: ["phê duyệt", "yêu cầu", "đề xuất", "trạng thái"], icon: "⚑" },
+    { terms: ["đồ uống", "danh mục", "sản phẩm"], icon: "☕" },
+    { terms: ["hồ sơ", "thông tin cơ bản", "bảo mật"], icon: "⚙" },
+    { terms: ["trợ giúp", "hỗ trợ"], icon: "?" },
+    { terms: ["tổng quan", "xin chào", "chào"], icon: "✦" }
+  ];
+
+  document.querySelectorAll("#app .page-heading h1, #app .admin-heading h1, #app .manager-dashboard-welcome h1, #app .customer-hero h1, #app .panel-title h2, #app .section-title h2, #app .form-heading h2").forEach(heading => {
+    if (heading.querySelector(":scope > .heading-icon")) return;
+    const text = heading.textContent.trim().toLocaleLowerCase("vi");
+    const match = headingIcons.find(item => item.terms.some(term => text.includes(term)));
+    if (!match) return;
+    const icon = document.createElement("span");
+    icon.className = "heading-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = match.icon;
+    heading.prepend(icon);
+  });
 }
 
 function applyRole(role) {

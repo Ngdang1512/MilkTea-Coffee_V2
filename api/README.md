@@ -42,8 +42,6 @@ Các phiên đăng nhập dùng Bearer token có hạn 8 giờ; ID tài khoản 
 | `PATCH` | `/internal/customers/{id}/status` | Admin khóa/mở khóa khách hàng |
 | `GET/POST/PATCH` | `/internal/managers[/{id}]` | Admin quản lý nhân sự Manager |
 | `GET/POST/PATCH` | `/internal/customer-requests[/{id}]` | Manager gửi/xem yêu cầu khóa; Admin duyệt hoặc từ chối |
-| `POST` | `/internal/manager-unlock-requests` | Manager bị khóa xác minh tên đăng nhập/mật khẩu, gửi yêu cầu Admin |
-| `GET/PATCH` | `/internal/manager-unlock-requests[/{id}]` | Admin xem, phê duyệt hoặc từ chối yêu cầu mở khóa Manager |
 | `GET` | `/internal/reports/customers` | Báo cáo khách hàng |
 | `GET/PATCH` | `/internal/feedback[/{id}]` | Danh sách/xử lý phản hồi |
 | `GET/POST` | `/internal/surveys` | Danh sách/phát hành khảo sát |

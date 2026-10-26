@@ -79,7 +79,5 @@ CRM_Create_All.sql
 07_notifications_and_replies.sql
 10_admin_governance.sql
 11_remove_customer_deletion_audit.sql
-12_allow_unlock_customer_request.sql
-13_manager_unlock_requests.sql
 
 Nếu pgAdmin báo lỗi, chạy ROLLBACK; để thoát transaction lỗi, rồi xử lý lỗi đầu tiên trong tab Messages trước khi chạy lại.

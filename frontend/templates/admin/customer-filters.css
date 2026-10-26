@@ -1,0 +1,89 @@
+body[data-role="admin"] #app .feedback-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin: -2px 0 18px;
+  padding: 12px;
+  border: 1px solid #e9eee9;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fafcf9, #f4f8f4);
+}
+
+body[data-role="admin"] #app .feedback-filter-bar .list-search {
+  flex: 1 1 260px !important;
+  max-width: 420px !important;
+  height: 42px;
+  padding: 0 13px;
+  border-color: #e1e8e3;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(34, 68, 49, .035);
+}
+
+body[data-role="admin"] #app .customer-filter-search > span {
+  color: #418365;
+  font-size: 17px;
+  line-height: 1;
+}
+
+body[data-role="admin"] #app .customer-filter-search input {
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #263b30;
+  font: 500 12px Manrope, sans-serif;
+}
+
+body[data-role="admin"] #app .customer-filter-control {
+  position: relative;
+  display: flex;
+  flex: 0 1 185px;
+  align-items: center;
+  min-width: 165px;
+  height: 42px;
+  border: 1px solid #e1e8e3;
+  border-radius: 10px;
+  background: #fff;
+  color: #418365;
+  box-shadow: 0 3px 10px rgba(34, 68, 49, .035);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+body[data-role="admin"] #app .customer-filter-control:hover,
+body[data-role="admin"] #app .customer-filter-control:focus-within {
+  transform: translateY(-1px);
+  border-color: #9dc3aa;
+  box-shadow: 0 5px 14px rgba(34, 95, 62, .08);
+}
+
+body[data-role="admin"] #app .customer-filter-control > span {
+  flex: 0 0 auto;
+  padding-left: 12px;
+  font-size: 13px;
+}
+
+body[data-role="admin"] #app .customer-filter-control .feedback-filter-select {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0 28px 0 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #52665b;
+  font: 600 11px Manrope, sans-serif;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  body[data-role="admin"] #app .feedback-filter-bar .list-search,
+  body[data-role="admin"] #app .customer-filter-control {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none !important;
+  }
+}

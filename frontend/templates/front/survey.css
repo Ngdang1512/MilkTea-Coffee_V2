@@ -1,0 +1,46 @@
+body[data-role="customer"] .survey-filter-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0;
+  padding: 16px 20px;
+  border-color: #eeeae0;
+  border-radius: 14px;
+  background: #fffdf9;
+}
+
+body[data-role="customer"] .survey-filter-counts {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+body[data-role="customer"] .survey-filter-counts span {
+  display: grid;
+  gap: 3px;
+  min-width: 54px;
+}
+
+body[data-role="customer"] .survey-filter-counts strong {
+  color: #1b6c4d;
+  font-size: 18px;
+}
+
+body[data-role="customer"] .survey-filter-counts small {
+  color: #89938d;
+  font-size: 10px;
+}
+
+body[data-role="customer"] .survey-filters { margin: 0; }
+body[data-role="customer"] .survey-filters button.active {
+  border-color: #cfe2d5;
+  background: #e8f2e9;
+  color: #104b36;
+}
+
+@media (max-width: 620px) {
+  body[data-role="customer"] .survey-filter-panel { align-items: stretch; flex-direction: column; }
+  body[data-role="customer"] .survey-filter-counts { justify-content: space-around; }
+  body[data-role="customer"] .survey-filters { flex-wrap: wrap; }
+}

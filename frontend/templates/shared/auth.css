@@ -34,6 +34,7 @@
   max-width: 1080px;
   min-height: 460px;
   margin: 18px auto;
+  animation: authEnter .5s ease both;
 }
 
 .auth-story {
@@ -44,6 +45,8 @@
   border-radius: 18px;
   background: linear-gradient(145deg, #173f32, #246b50);
   color: #fff;
+  box-shadow: 0 22px 55px rgba(18, 58, 43, .14);
+  animation: authStoryIn .6s cubic-bezier(.2,.8,.2,1) both;
 }
 
 .auth-story .welcome-chip {
@@ -95,7 +98,18 @@
   border-radius: 18px;
   background: var(--white, #fff);
   box-shadow: var(--shadow);
+  animation: authCardIn .6s .08s cubic-bezier(.2,.8,.2,1) both;
 }
+
+.auth-card > label { transition: color .2s ease, transform .2s ease; }
+.auth-card > label:focus-within { color: var(--green); transform: translateY(-1px); }
+.auth-card select:focus { border-color: #509177; outline: 0; box-shadow: 0 0 0 3px #e7f2ed; }
+.auth-submit { transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+.auth-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(34, 112, 79, .2); filter: saturate(1.08); }
+
+@keyframes authEnter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes authStoryIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+@keyframes authCardIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 .auth-card .form-heading {
   margin-bottom: 2px;

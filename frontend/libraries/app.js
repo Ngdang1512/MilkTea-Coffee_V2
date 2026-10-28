@@ -329,19 +329,35 @@ function customersView() {
 }
 
 function accountStatusDialog() {
-  return `<dialog class="manager-edit-dialog" id="accountStatusDialog" aria-labelledby="accountStatusTitle">
-    <form class="profile-form" id="accountStatusForm">
+  return `<dialog class="status-confirm-dialog" id="accountStatusDialog" aria-labelledby="accountStatusTitle" aria-describedby="accountStatusDescription">
+    <form method="dialog" class="status-confirm-card">
+      <span class="status-confirm-icon" id="accountStatusIcon" aria-hidden="true">?</span>
       <div class="form-heading">
+        <p class="eyebrow">XÁC NHẬN THAO TÁC</p>
         <h2 id="accountStatusTitle">Xác nhận thay đổi trạng thái</h2>
         <p id="accountStatusDescription"></p>
       </div>
-      <div class="auth-error" id="accountStatusError" role="alert"></div>
       <footer>
-        <button class="outline" id="accountStatusCancel" type="button">Hủy</button>
-        <button class="primary" type="submit">Xác nhận</button>
+        <button class="outline" id="accountStatusCancel" type="submit" value="cancel">Hủy</button>
+        <button class="primary" id="accountStatusConfirm" type="submit" value="confirm">Xác nhận</button>
       </footer>
     </form>
   </dialog>`;
+}
+
+function askStatusConfirmation({ title, description, confirmLabel = "Xác nhận", danger = false }) {
+  const dialog = document.querySelector("#accountStatusDialog");
+  if (!dialog) return Promise.resolve(false);
+  document.querySelector("#accountStatusTitle").textContent = title;
+  document.querySelector("#accountStatusDescription").textContent = description;
+  document.querySelector("#accountStatusConfirm").textContent = confirmLabel;
+  document.querySelector("#accountStatusIcon").textContent = danger ? "!" : "✓";
+  dialog.classList.toggle("is-danger", danger);
+  return new Promise(resolve => {
+    dialog.addEventListener("close", () => resolve(dialog.returnValue === "confirm"), { once: true });
+    dialog.showModal();
+    document.querySelector("#accountStatusCancel").focus();
+  });
 }
 
 function createCustomerView() {
@@ -1100,7 +1116,7 @@ function customerRequestsView() {
       <div class="approval-tabs" role="tablist" aria-label="Lọc yêu cầu khách hàng">${tabs.map(([key, label]) => `<button class="approval-tab ${filters.tab === key ? "active" : ""}" id="approval-tab-${key}" type="button" role="tab" aria-selected="${filters.tab === key}" data-tab="${key}">${label}<span>${tabCounts[key]}</span></button>`).join("")}</div>
       <div class="approval-filters"><label class="approval-search">⌕<input id="approvalSearch" type="search" value="${escapeHtml(filters.query)}" placeholder="${admin ? "Tìm khách hàng, Manager, lý do..." : "Tìm khách hàng hoặc lý do..."}" /></label><label>Từ ngày<input id="approvalFrom" type="date" value="${escapeHtml(filters.from)}" /></label><label>Đến ngày<input id="approvalTo" type="date" value="${escapeHtml(filters.to)}" /></label></div>
       <div id="requestResults">${customerRequestResults(requests, filters, admin)}</div>
-    </section>`;
+    </section>${admin ? accountStatusDialog() : ""}`;
 }
 
 function customerRequestResults(requests, filters, admin) {
@@ -1164,7 +1180,7 @@ function internalLoginView() {
 
 function adminCatalogView() {
   const catalogs = internalSession.catalogs || { preferences: [], drinks: [] };
-  return `<section class="page-heading compact"><div><p class="eyebrow">DANH MỤC HỆ THỐNG</p><h1>Danh mục đồ uống</h1><p>Quản lý các món khách hàng có thể chọn để đánh giá.</p></div><button class="primary" id="openDrinkDialog">＋ Thêm đồ uống</button></section><section class="catalog-layout"><article class="panel"><div class="panel-title"><div><h2>Nhóm sở thích</h2><p>${catalogs.preferences.length} nhóm</p></div></div>${catalogs.preferences.map((x,i)=>`<div class="catalog-row"><span class="catalog-icon">${i+1}</span><div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.description || "Không có mô tả")}</small></div><span class="status ${x.active ? "active" : "locked"}">${x.active ? "Đang dùng" : "Ngừng dùng"}</span></div>`).join("")}</article><article class="panel"><div class="panel-title"><div><h2>Đồ uống</h2><p>${catalogs.drinks.length} sản phẩm</p></div></div>${catalogs.drinks.map(x=>`<div class="catalog-row"><span class="drink-dot green">☕</span><div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.code)} · ${escapeHtml(x.description || "Chưa có mô tả")}</small></div><div class="drink-actions"><span class="status ${x.active ? "active" : "locked"}">${x.active ? "Kinh doanh" : "Ngừng bán"}</span><button class="outline drink-status" data-id="${x.id}" data-active="${x.active ? "false" : "true"}">${x.active ? "Ngừng bán" : "Mở bán lại"}</button></div></div>`).join("")}</article></section><dialog class="manager-edit-dialog" id="drinkDialog"><form class="profile-form" id="drinkForm"><div class="form-heading"><p class="eyebrow">SẢN PHẨM MỚI</p><h2>Thêm đồ uống</h2><p>Món đang kinh doanh sẽ xuất hiện ngay trên trang đánh giá của Customer.</p></div><div class="form-grid"><label>Mã đồ uống *<input name="maDoUong" minlength="2" maxlength="30" placeholder="VD: TS03" required /></label><label>Tên đồ uống *<input name="tenDoUong" minlength="2" maxlength="150" placeholder="VD: Trà sữa matcha" required /></label></div><label>Mô tả<textarea name="moTa" rows="4" maxlength="1000" placeholder="Thành phần hoặc đặc điểm nổi bật"></textarea></label><div class="auth-error" id="drinkError" role="alert"></div><footer><button class="outline" id="cancelDrink" type="button">Hủy</button><button class="primary" type="submit">Thêm đồ uống</button></footer></form></dialog>`;
+  return `<section class="page-heading compact"><div><p class="eyebrow">DANH MỤC HỆ THỐNG</p><h1>Danh mục đồ uống</h1><p>Quản lý các món khách hàng có thể chọn để đánh giá.</p></div><button class="primary" id="openDrinkDialog">＋ Thêm đồ uống</button></section><section class="catalog-layout"><article class="panel"><div class="panel-title"><div><h2>Nhóm sở thích</h2><p>${catalogs.preferences.length} nhóm</p></div></div>${catalogs.preferences.map((x,i)=>`<div class="catalog-row"><span class="catalog-icon">${i+1}</span><div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.description || "Không có mô tả")}</small></div><span class="status ${x.active ? "active" : "locked"}">${x.active ? "Đang dùng" : "Ngừng dùng"}</span></div>`).join("")}</article><article class="panel"><div class="panel-title"><div><h2>Đồ uống</h2><p>${catalogs.drinks.length} sản phẩm</p></div></div>${catalogs.drinks.map(x=>`<div class="catalog-row"><span class="drink-dot green">☕</span><div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.code)} · ${escapeHtml(x.description || "Chưa có mô tả")}</small></div><div class="drink-actions"><span class="status ${x.active ? "active" : "locked"}">${x.active ? "Kinh doanh" : "Ngừng bán"}</span><button class="outline drink-status" data-id="${x.id}" data-name="${escapeHtml(x.name)}" data-active="${x.active ? "false" : "true"}">${x.active ? "Ngừng bán" : "Mở bán lại"}</button></div></div>`).join("")}</article></section><dialog class="manager-edit-dialog" id="drinkDialog"><form class="profile-form" id="drinkForm"><div class="form-heading"><p class="eyebrow">SẢN PHẨM MỚI</p><h2>Thêm đồ uống</h2><p>Món đang kinh doanh sẽ xuất hiện ngay trên trang đánh giá của Customer.</p></div><div class="form-grid"><label>Mã đồ uống *<input name="maDoUong" minlength="2" maxlength="30" placeholder="VD: TS03" required /></label><label>Tên đồ uống *<input name="tenDoUong" minlength="2" maxlength="150" placeholder="VD: Trà sữa matcha" required /></label></div><label>Mô tả<textarea name="moTa" rows="4" maxlength="1000" placeholder="Thành phần hoặc đặc điểm nổi bật"></textarea></label><div class="auth-error" id="drinkError" role="alert"></div><footer><button class="outline" id="cancelDrink" type="button">Hủy</button><button class="primary" type="submit">Thêm đồ uống</button></footer></form></dialog>${accountStatusDialog()}`
 }
 
 function loginView() {
@@ -1905,7 +1921,13 @@ async function setupInternalPage(view, renderVersion) {
       document.querySelectorAll(".drink-status").forEach(button => button.addEventListener("click", async () => {
         const active = button.dataset.active === "true";
         const action = active ? "mở bán lại" : "ngừng bán";
-        if (!window.confirm(`Bạn có chắc muốn ${action} món này?`)) return;
+        const confirmed = await askStatusConfirmation({
+          title: active ? "Mở bán lại đồ uống?" : "Ngừng bán đồ uống?",
+          description: `Bạn muốn ${action} “${button.dataset.name}” chứ? Lịch sử đánh giá của món vẫn được giữ nguyên.`,
+          confirmLabel: active ? "Mở bán lại" : "Ngừng bán",
+          danger: !active
+        });
+        if (!confirmed) return;
         button.disabled = true;
         try {
           await internalApi.updateDrinkStatus(button.dataset.id, active);
@@ -2444,6 +2466,36 @@ async function setupInternalPage(view, renderVersion) {
       }
     });
 
+    document.querySelectorAll(".manager-status").forEach(button => button.addEventListener("click", async () => {
+      const manager = internalSession.managers.find(item => String(item.id) === String(button.dataset.id));
+      if (!manager) return;
+      const status = button.dataset.status;
+      const locking = status === "locked";
+      const confirmed = await askStatusConfirmation({
+        title: locking ? "Khóa tài khoản Manager?" : "Mở khóa tài khoản Manager?",
+        description: `Bạn muốn ${locking ? "khóa" : "mở khóa"} tài khoản của ${manager.fullName || manager.username}?`,
+        confirmLabel: locking ? "Khóa tài khoản" : "Mở khóa",
+        danger: locking
+      });
+      if (!confirmed) return;
+      button.disabled = true;
+      try {
+        await internalApi.updateManager(manager.id, {
+          hoTen: manager.fullName || manager.username,
+          chucVu: manager.jobTitle || "Nhân viên",
+          boPhan: manager.department || "",
+          status
+        });
+        internalSession.loaded.delete("accounts");
+        internalSession.loaded.delete("admin-dashboard");
+        notify(`Đã ${locking ? "khóa" : "mở khóa"} tài khoản Manager`);
+        render("accounts");
+      } catch (error) {
+        notify(error.message);
+        button.disabled = false;
+      }
+    }));
+
     const requestCenter = document.querySelector("#customerRequestCenter");
     requestCenter?.addEventListener("click", async event => {
       const decisionButton = event.target.closest(".request-approve, .request-reject");
@@ -2455,7 +2507,13 @@ async function setupInternalPage(view, renderVersion) {
         const confirmMsg = approved
           ? (isUnlock ? "Phê duyệt yêu cầu mở khóa tài khoản khách hàng này?" : "Phê duyệt yêu cầu khóa tài khoản khách hàng này?")
           : (isUnlock ? "Từ chối yêu cầu mở khóa này?" : "Từ chối yêu cầu khóa này?");
-        if (!window.confirm(confirmMsg)) return;
+        const confirmed = await askStatusConfirmation({
+          title: approved ? (isUnlock ? "Phê duyệt mở khóa?" : "Phê duyệt khóa tài khoản?") : "Từ chối yêu cầu?",
+          description: confirmMsg,
+          confirmLabel: approved ? (isUnlock ? "Phê duyệt & mở khóa" : "Phê duyệt & khóa") : "Từ chối",
+          danger: approved && !isUnlock
+        });
+        if (!confirmed) return;
         decisionButton.disabled = true;
         try {
           await internalApi.decideCustomerRequest(decisionButton.dataset.id, approved ? "approved" : "rejected", note);
@@ -2558,7 +2616,14 @@ async function setupInternalPage(view, renderVersion) {
         const id = button.dataset.id;
         const status = button.dataset.status;
         const action = status === "locked" ? "khóa" : "mở khóa";
-        if (!window.confirm(`Bạn có chắc muốn ${action} tài khoản khách hàng này?`)) return;
+        const customer = internalSession.customers.find(item => String(item.id) === String(id));
+        const confirmed = await askStatusConfirmation({
+          title: status === "locked" ? "Khóa tài khoản khách hàng?" : "Mở khóa tài khoản khách hàng?",
+          description: `Bạn muốn ${action} tài khoản của ${customer?.name || "khách hàng này"}?`,
+          confirmLabel: status === "locked" ? "Khóa tài khoản" : "Mở khóa",
+          danger: status === "locked"
+        });
+        if (!confirmed) return;
         try {
           await internalApi.updateCustomerStatus(id, status);
           internalSession.loaded.delete("customers");

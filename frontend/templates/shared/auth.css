@@ -226,3 +226,59 @@
     font-size: 24px;
   }
 }
+
+/* Customer registration form polish */
+.auth-shell.register-shell{grid-template-columns:minmax(380px,.94fr) minmax(520px,1.06fr);align-items:center;gap:22px;max-width:1180px;min-height:0;margin:10px auto}
+.register-story{min-height:580px;justify-content:flex-start;padding:clamp(34px,3.5vw,50px);border:1px solid rgba(255,255,255,.16);border-radius:20px;background:radial-gradient(circle at 88% 12%,rgba(220,178,119,.28),transparent 30%),radial-gradient(circle at 6% 92%,rgba(117,189,150,.24),transparent 32%),linear-gradient(150deg,#143d30,#28654b 66%,#72523c);box-shadow:0 24px 60px rgba(26,65,46,.14),inset 0 1px rgba(255,255,255,.12)}
+.register-story h1{margin-top:24px;font:700 clamp(28px,2.5vw,36px)/1.14 "Playfair Display",serif;letter-spacing:-.6px;text-wrap:balance}
+.register-story>p{max-width:420px;font-size:12px;line-height:1.75}
+.register-story .auth-quote{margin-top:auto}
+.register-story-note{display:flex;align-items:center;gap:12px;margin-top:24px;padding:14px;border:1px solid rgba(255,255,255,.16);border-radius:13px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px)}
+.register-story-note>span{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.13);font-size:19px}
+.register-story-note strong,.register-story-note small{display:block}
+.register-story-note strong{color:#fff;font-size:11px}
+.register-story-note small{margin-top:4px;color:#d2e4d9;font-size:9px;line-height:1.5}
+.register-card{justify-content:flex-start;gap:13px;max-width:680px;padding:clamp(24px,3vw,34px);border-color:#e8ece5;border-radius:20px;background:linear-gradient(160deg,#fff 0%,#fffefa 100%);box-shadow:0 24px 65px rgba(37,66,49,.1)}
+.register-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1px}
+.register-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid #e6eee5;border-radius:12px;background:#f1f6ef;color:#507d5b;font-size:16px}
+.register-time{color:#87928b;font-size:8px;font-weight:800;letter-spacing:.9px}
+.register-time i{padding:0 4px;color:#c5a77a;font-style:normal}
+.register-card .form-heading{margin:0 0 1px}
+.register-card .form-heading .eyebrow{margin-bottom:6px;color:#568364;font-size:9px;font-weight:800;letter-spacing:1.1px}
+.register-card .form-heading h2{margin:0 0 5px;color:#203b2d;font:700 26px "Playfair Display",serif;letter-spacing:0}
+.register-card .form-heading>p:last-child{color:#7b8980;font-size:10px}
+.register-form-section{padding-top:12px;border-top:1px solid #edf0eb}
+.register-section-heading{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.register-section-heading>span{display:grid;place-items:center;width:26px;height:26px;border:1px solid #e4ece4;border-radius:9px;background:#f5f8f3;color:#63816a;font-size:8px;font-weight:800}
+.register-section-heading strong,.register-section-heading small{display:block}
+.register-section-heading strong{color:#344a3e;font-size:10px;font-weight:800}
+.register-section-heading small{margin-top:2px;color:#93a097;font-size:8px}
+.register-card .form-grid{grid-template-columns:minmax(0,1fr);gap:13px}
+.register-card label{display:grid;align-content:start;gap:6px;min-width:0;color:#53685c;font-size:9px;font-weight:800}
+.register-card input,.register-card select{min-width:0;min-height:42px;padding:10px 11px;border:1px solid #dfe7df;border-radius:10px;background:#fff;color:#30483a;font:11px Manrope,sans-serif;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.register-card input:hover,.register-card select:hover{border-color:#bfd2c2}
+.register-card input:focus,.register-card select:focus{border-color:#568967;outline:0;box-shadow:0 0 0 3px rgba(78,137,94,.13);transform:translateY(-1px)}
+.register-card input::placeholder{color:#b0bbb3}
+.register-card label>small{color:#8e9a91;font-size:8px;font-weight:500;line-height:1.45}
+.register-password-field{position:relative;display:block;min-width:0}
+.register-password-field input{padding-right:54px}
+.register-password-field .password-toggle{position:absolute;top:50%;right:8px;transform:translateY(-50%);padding:5px 6px;border:0;border-radius:6px;background:transparent;color:#5d8066;font:800 8px Manrope,sans-serif;cursor:pointer;transition:background .18s ease,color .18s ease}
+.register-password-field .password-toggle:hover{background:#f0f5ef;color:#285c3a}
+.register-card .register-match-hint{transition:color .18s ease}
+.register-card .register-match-hint.is-match{color:#278056;font-weight:800}
+.register-card .register-match-hint.is-mismatch{color:#b84f3d;font-weight:800}
+.register-card .auth-error{min-height:0;margin:0}
+.register-card .auth-error:not(:empty){padding:10px 12px;border:1px solid #f3d9d3;border-radius:9px;background:#fff4f1}
+.register-card .auth-submit{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;margin:0;border:0;border-radius:11px;background:linear-gradient(110deg,#1a6948,#35845c);box-shadow:0 8px 18px rgba(36,111,72,.16);font-weight:800;transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}
+.register-card .auth-submit:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(36,111,72,.22);filter:saturate(1.08)}
+.register-card .auth-submit span{transition:transform .2s ease}
+.register-card .auth-submit:hover span{transform:translateX(3px)}
+.register-privacy{display:flex;justify-content:center;align-items:center;gap:6px;margin:-4px 0 0;color:#87948b;font-size:8px}
+.register-privacy span{color:#64846c;font-size:10px}
+.register-card .auth-switch{margin-top:0;padding-top:10px;border-top:1px solid #eff1ed;font-size:9px}
+.register-card .auth-switch button{font-size:9px}
+@media(max-width:960px){.auth-shell.register-shell{grid-template-columns:minmax(0,1fr);max-width:680px;gap:14px}.register-story{min-height:300px;padding:30px}.register-story .auth-quote{margin-top:22px}.register-story-note{margin-top:16px}.register-card{max-width:none}}
+@media(max-width:560px){.register-card .form-grid{grid-template-columns:1fr}.register-story{min-height:250px}.register-story-note{margin-top:12px}.register-card-top{margin-bottom:0}.register-card{gap:12px}}
+@media(prefers-reduced-motion:reduce){.register-card input,.register-card select,.register-password-field .password-toggle,.register-card .auth-submit,.register-card .auth-submit span{transition:none}}
+
+.profile-completion-card{max-width:680px;justify-content:flex-start;gap:16px}.profile-completion-card .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-completion-card .full-width{grid-column:1/-1}.profile-completion-card label{display:grid;gap:7px;color:#53685c;font-size:11px;font-weight:700}.profile-completion-card input,.profile-completion-card select{min-height:44px;padding:11px 12px;border:1px solid #dfe7df;border-radius:10px;background:#fff;color:#30483a;font:12px Manrope,sans-serif}.profile-completion-card input:focus,.profile-completion-card select:focus{border-color:#568967;outline:0;box-shadow:0 0 0 3px rgba(78,137,94,.13)}.profile-completion-card label small{font-size:9px;color:#87948a;font-weight:500}.profile-completion-shell .auth-story{min-height:460px}@media(max-width:560px){.profile-completion-card .form-grid{grid-template-columns:1fr}.profile-completion-card .full-width{grid-column:auto}}

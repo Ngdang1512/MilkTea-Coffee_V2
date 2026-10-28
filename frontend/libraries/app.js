@@ -166,13 +166,26 @@ function dashboard() {
    2. QUẢN LÝ KHÁCH HÀNG
    ══════════════════════════════════════════════════════════════════════ */
 function customerTable(rows, showActions = false) {
+  const pendingRequestFor = customer => currentRole === "manager"
+    ? internalSession.customerRequests.find(request => String(request.customerId) === String(customer.id) && request.status === "pending")
+    : null;
+  const requestStatus = request => request?.action === "unlock_customer" ? "Đã gửi yêu cầu mở khóa" : "Đã gửi yêu cầu khóa";
   const actions = c => currentRole === "admin"
     ? `<button class="outline customer-status" data-id="${c.id}" data-status="${c.status === "locked" ? "active" : "locked"}">${c.status === "locked" ? "Mở khóa" : "Khóa"}</button>`
-    : `<button class="outline customer-edit-btn" data-id="${c.id}">✎ Sửa hồ sơ</button>${c.status === "active" ? `<button class="outline customer-lock-btn" data-id="${c.id}" data-action="lock_customer" data-name="${escapeHtml(c.name)}" data-code="${escapeHtml(c.code)}">⚑ Đề xuất khóa</button>` : `<button class="outline customer-lock-btn" data-id="${c.id}" data-action="unlock_customer" data-name="${escapeHtml(c.name)}" data-code="${escapeHtml(c.code)}" style="color:var(--green);border-color:#b4dac7">🔓 Đề xuất mở khóa</button>`}`;
+    : (() => {
+      const pendingRequest = pendingRequestFor(c);
+      const requestButton = pendingRequest
+        ? `<span class="customer-request-action-state">Đang chờ Admin</span>`
+        : c.status === "active"
+          ? `<button class="outline customer-lock-btn" data-id="${c.id}" data-action="lock_customer" data-name="${escapeHtml(c.name)}" data-code="${escapeHtml(c.code)}">⚑ Đề xuất khóa</button>`
+          : `<button class="outline customer-lock-btn" data-id="${c.id}" data-action="unlock_customer" data-name="${escapeHtml(c.name)}" data-code="${escapeHtml(c.code)}">🔓 Đề xuất mở khóa</button>`;
+      return `<button class="outline customer-edit-btn" data-id="${c.id}">✎ Sửa hồ sơ</button>${requestButton}`;
+    })();
 
   return `<div class="table-wrap"><table><thead><tr>
     <th>Khách hàng</th>
     <th>Mã thành viên</th>
+    <th>Gmail</th>
     <th>Tuổi</th>
     <th>Sở thích mặc định</th>
     <th>Trạng thái</th>
@@ -186,10 +199,12 @@ function customerTable(rows, showActions = false) {
           <div>
             <strong>${escapeHtml(c.name)}</strong>
             <small>@${escapeHtml(c.username || "khach_hang")}</small>
+            ${pendingRequestFor(c) ? `<span class="customer-request-chip"><i>✓</i>${requestStatus(pendingRequestFor(c))}<small>Đang chờ Admin duyệt</small></span>` : ""}
           </div>
         </div>
       </td>
       <td><code>${escapeHtml(c.code)}</code></td>
+      <td>${escapeHtml(c.email || "Chưa có email")}${c.email?.endsWith("@example.invalid") ? `<small class="synthetic-email-note">Email mẫu · không nhận thư</small>` : ""}</td>
       <td>${c.age || (new Date().getFullYear() - (c.birth_year || c.birthYear || 2000))} tuổi</td>
       <td>${escapeHtml(c.preference || "Chưa chọn")}</td>
       <td><span class="status ${c.status === "locked" ? "locked" : "active"}"><i></i>${statusLabel(c.status)}</span></td>
@@ -270,6 +285,10 @@ function customersView() {
           <input name="namSinh" id="editCustomerBirthYear" type="number" min="1900" max="${new Date().getFullYear()}" required />
         </label>
         <label>
+          Gmail / email *
+          <input name="email" id="editCustomerEmail" type="email" maxlength="254" required />
+        </label>
+        <label>
           Giới tính
           <select name="gioiTinh" id="editCustomerGender">
             <option value="khong_cung_cap">Không cung cấp</option>
@@ -296,10 +315,15 @@ function customersView() {
 
   <!-- Modal Đề xuất khóa / mở khóa khách hàng gửi Admin duyệt -->
   <dialog class="lock-request-dialog" id="customerLockDialog" aria-labelledby="lockDialogTitle">
-    <form class="profile-form" id="customerLockForm">
-      <div class="form-heading">
-        <h2 id="lockDialogTitle">Đề xuất khóa tài khoản khách hàng</h2>
-        <p id="lockDialogSubtitle">Yêu cầu sẽ được chuyển đến Admin xem xét và phê duyệt trước khi thi hành.</p>
+    <form class="profile-form lock-request-form" id="customerLockForm">
+      <div class="lock-request-header">
+        <span class="lock-request-symbol" id="lockDialogIcon" aria-hidden="true">⚑</span>
+        <div>
+          <p class="eyebrow" id="lockDialogEyebrow">GỬI YÊU CẦU LÊN ADMIN</p>
+          <h2 id="lockDialogTitle">Đề xuất khóa tài khoản khách hàng</h2>
+          <p id="lockDialogSubtitle">Admin sẽ xem xét yêu cầu trước khi trạng thái tài khoản thay đổi.</p>
+        </div>
+        <button class="lock-request-close" id="customerLockClose" type="button" aria-label="Đóng hộp đề xuất">×</button>
       </div>
 
       <div class="customer-info-box">
@@ -308,19 +332,21 @@ function customersView() {
           <strong id="lockDialogName">—</strong>
           <small id="lockDialogCode">—</small>
         </div>
+        <span class="lock-request-account-state" id="lockDialogAccountState">Hoạt động</span>
       </div>
 
       <label>
-        <span id="lockReasonLabel">Lý do đề xuất (bắt buộc) *</span>
+        <span class="lock-request-reason-title" id="lockReasonLabel">Lý do đề xuất (bắt buộc) *</span>
         <textarea id="lockDialogReason" name="reason" rows="4" minlength="5" maxlength="2000" placeholder="Nhập lý do chi tiết..." required></textarea>
-        <div class="char-count"><span id="lockReasonCount">0</span>/2000 ký tự (tối thiểu 5)</div>
+        <div class="lock-request-guidance">Nêu rõ tình huống để Admin có đủ thông tin xem xét.</div>
+        <div class="char-count"><span id="lockReasonCount">0</span>/2000 ký tự <span>· tối thiểu 5</span></div>
       </label>
 
       <div class="auth-error" id="customerLockError" role="alert"></div>
 
       <footer>
         <button class="outline" type="button" id="customerLockCancel">Hủy bỏ</button>
-        <button class="primary" id="lockDialogSubmitBtn" type="submit" style="background:#c04a36;border-color:#c04a36">Gửi đề xuất lên Admin</button>
+        <button class="primary lock-request-submit" id="lockDialogSubmitBtn" type="submit" style="background:#c04a36;border-color:#c04a36"><span aria-hidden="true">➤</span> Gửi đề xuất lên Admin</button>
       </footer>
     </form>
   </dialog>
@@ -362,7 +388,7 @@ function askStatusConfirmation({ title, description, confirmLabel = "Xác nhận
 
 function createCustomerView() {
   const preferences = internalSession.catalogs?.preferences || [];
-  return `<section class="page-heading compact"><div><p class="eyebrow">KHÁCH HÀNG</p><h1>Thêm khách hàng mới</h1><p>Tạo tài khoản và hồ sơ thành viên. Chia sẻ mật khẩu ban đầu an toàn với khách hàng.</p></div></section><form class="panel profile-form" id="createCustomerForm"><div class="form-grid"><label>Tên đăng nhập *<input name="tenDangNhap" minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" required /></label><label>Mật khẩu ban đầu *<input name="matKhau" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label><label>Họ và tên *<input name="hoTen" minlength="2" maxlength="150" required /></label><label>Năm sinh *<input name="namSinh" type="number" min="1900" max="${new Date().getFullYear()}" required /></label><label>Giới tính<select name="gioiTinh"><option value="khong_cung_cap">Không cung cấp</option><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option></select></label><label>Sở thích mặc định *<select name="soThichId" required><option value="">Chọn sở thích</option>${preferences.filter(item => item.active).map(item => `<option value="${item.id}">${escapeHtml(item.name)}</option>`).join("")}</select></label></div><div class="auth-error" id="createCustomerError" role="alert"></div><footer><button type="button" class="outline" data-view="customers">Hủy</button><button class="primary" type="submit">Tạo khách hàng</button></footer></form>`;
+  return `<section class="page-heading compact"><div><p class="eyebrow">KHÁCH HÀNG</p><h1>Thêm khách hàng mới</h1><p>Tạo hồ sơ thành viên, thông tin đăng nhập và email liên hệ.</p></div></section><form class="panel profile-form manager-customer-form" id="createCustomerForm"><div class="manager-form-intro"><span class="manager-form-icon">♧</span><div><strong>Thông tin tài khoản và hồ sơ</strong><small>Các mục có dấu * là bắt buộc. Mật khẩu ban đầu cần được chia sẻ an toàn.</small></div></div><div class="form-grid"><label>Tên đăng nhập *<input name="tenDangNhap" minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" autocomplete="off" placeholder="Ví dụ: khachhang15" required /></label><label>Mật khẩu ban đầu *<input name="matKhau" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" required /></label><label>Họ và tên *<input name="hoTen" minlength="2" maxlength="150" placeholder="Tên khách hàng" required /></label><label>Gmail / email *<input name="email" type="email" maxlength="254" autocomplete="email" placeholder="khachhang@gmail.com" required /></label><label>Năm sinh *<input name="namSinh" type="number" min="1900" max="${new Date().getFullYear()}" placeholder="Ví dụ: 2000" required /></label><label>Giới tính<select name="gioiTinh"><option value="khong_cung_cap">Không cung cấp</option><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option></select></label><label>Sở thích mặc định *<select name="soThichId" required><option value="">Chọn sở thích</option>${preferences.filter(item => item.active).map(item => `<option value="${item.id}">${escapeHtml(item.name)}</option>`).join("")}</select></label></div><div class="auth-error" id="createCustomerError" role="alert"></div><footer><button type="button" class="outline" data-view="customers">Hủy</button><button class="primary" type="submit">Tạo khách hàng</button></footer></form>`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -656,13 +682,18 @@ function editSurveyView() {
   const survey = internalSession.editSurvey;
   if (!survey) return `<section class="panel empty-state"><h2>Không tìm thấy khảo sát</h2><button class="outline" data-view="surveys">Quay lại danh sách</button></section>`;
   const locked = Number(survey.completed) > 0;
-  const questionRows = survey.questions.map(question => `
-    <div class="form-grid survey-question-input">
-      <label>Câu hỏi *<input name="question" minlength="3" value="${escapeHtml(question.content)}" ${locked ? "readonly" : "required"} /></label>
-      <label>Các lựa chọn *<input name="choices" maxlength="5000" value="${escapeHtml(question.choices.join("; "))}" ${locked ? "readonly" : "required"} /></label>
-      ${locked ? "" : `<button type="button" class="outline remove-survey-question">Xóa câu hỏi</button>`}
-    </div>
-  `).join("");
+  const questionRows = survey.questions.map((question, index) => {
+    const choices = (question.choices || []).map(choice => typeof choice === "string" ? choice : choice.content || "").filter(Boolean).join("; ");
+    return `
+      <div class="survey-question-input survey-edit-question">
+        <div class="survey-edit-question-heading"><span class="survey-question-number">${String(index + 1).padStart(2, "0")}</span><div><strong>Câu hỏi ${index + 1}</strong><small>${locked ? "Đã khóa vì có phản hồi" : "Nội dung và các lựa chọn trả lời"}</small></div>${locked ? `<span class="survey-locked-tag">Đã khóa</span>` : `<button type="button" class="outline remove-survey-question" aria-label="Xóa câu hỏi ${index + 1}">Xóa</button>`}</div>
+        <div class="survey-edit-question-fields">
+          <label>Câu hỏi *<input name="question" minlength="3" maxlength="1000" value="${escapeHtml(question.content)}" placeholder="Nhập nội dung câu hỏi" ${locked ? "readonly" : "required"} /></label>
+          <label>Các lựa chọn *<input name="choices" maxlength="5000" value="${escapeHtml(choices)}" placeholder="Ví dụ: Rất ngon; Bình thường; Chưa phù hợp" ${locked ? "readonly" : "required"} /><small>Phân tách từng lựa chọn bằng dấu chấm phẩy (;).</small></label>
+        </div>
+      </div>
+    `;
+  }).join("");
   const deadlineMin = survey.endAt && Date.parse(survey.endAt) <= Date.now() ? localDateTime(survey.endAt) : minDateTimeLocal();
 
   return `
@@ -674,33 +705,33 @@ function editSurveyView() {
     </div>
   </section>
 
-  <form class="panel profile-form" id="editSurveyForm" data-id="${survey.id}">
-    <div class="form-grid">
+  <form class="panel profile-form survey-edit-form" id="editSurveyForm" data-id="${survey.id}">
+    <div class="survey-edit-basics">
       <label class="full-width">
         Tiêu đề *
-        <input name="title" minlength="3" maxlength="255" value="${escapeHtml(survey.title)}" required />
+        <input name="title" minlength="3" maxlength="255" value="${escapeHtml(survey.title)}" placeholder="Ví dụ: Đánh giá món Matcha Latte" required />
       </label>
       <label>
-        Hạn trả lời
+        Hạn trả lời <small>Tùy chọn</small>
         <input name="endAt" type="datetime-local" min="${deadlineMin}" value="${localDateTime(survey.endAt)}" />
       </label>
     </div>
 
-    <div class="form-heading">
-      <h2>Câu hỏi</h2>
-      <p>Mỗi lựa chọn ngăn cách bởi dấu chấm phẩy ;</p>
+    <div class="survey-edit-section-heading">
+      <div><span class="survey-section-icon">☷</span><div><h2>Câu hỏi khảo sát</h2><p>Chỉnh sửa nội dung và lựa chọn cho từng câu hỏi.</p></div></div>
+      <span class="survey-question-count">${survey.questions.length} câu hỏi</span>
     </div>
 
-    ${locked ? `<p class="form-note">Khảo sát đã có ${survey.completed} khách nộp phản hồi nên câu hỏi đang được khóa an toàn để bảo toàn số liệu thống kê.</p>` : ""}
+    ${locked ? `<p class="survey-edit-locked-note"><span>i</span><span>Đã có <strong>${survey.completed} khách</strong> gửi phản hồi. Hệ thống khóa nội dung câu hỏi để bảo toàn số liệu thống kê.</span></p>` : ""}
 
     <div id="surveyQuestions">${questionRows}</div>
 
-    ${locked ? "" : `<button type="button" class="outline" id="addSurveyQuestion">＋ Thêm câu hỏi</button>`}
+    ${locked ? "" : `<button type="button" class="outline survey-add-question" id="addSurveyQuestion">＋ Thêm câu hỏi</button>`}
     <div class="auth-error" id="surveyError" role="alert"></div>
 
     <footer>
       <button type="button" class="outline" data-view="surveys">Hủy</button>
-      <button class="primary" type="submit">Lưu thay đổi</button>
+      <button class="primary" type="submit"><span aria-hidden="true">✓</span> Lưu thay đổi</button>
     </footer>
   </form>`;
 }
@@ -1111,8 +1142,9 @@ function customerRequestsView() {
     ["history", "Lịch sử"]
   ];
   updateApprovalBadges();
-  return `<section class="page-heading compact"><div><p class="eyebrow">${admin ? "QUẢN TRỊ TỐI CAO" : "YÊU CẦU ĐÃ GỬI"}</p><h1>${admin ? "Trung tâm phê duyệt" : "Yêu cầu đề xuất lên Admin"}</h1><p>${admin ? "Tập trung xử lý các yêu cầu khóa hoặc mở khóa tài khoản; các phán quyết được lưu trong lịch sử." : "Theo dõi trạng thái các yêu cầu đề xuất khóa / mở khóa khách hàng gửi Admin."}</p></div></section>
+  return `<section class="page-heading compact approval-page-heading"><div><p class="eyebrow">${admin ? "QUẢN TRỊ TỐI CAO" : "YÊU CẦU ĐÃ GỬI"}</p><h1>${admin ? "Trung tâm phê duyệt" : "Yêu cầu đề xuất lên Admin"}</h1><p>${admin ? "Xem xét yêu cầu khóa hoặc mở khóa khách hàng do Manager gửi và lưu lại quyết định." : "Theo dõi trạng thái các đề xuất khóa hoặc mở khóa khách hàng đã gửi Admin."}</p></div>${admin ? `<span class="approval-live-count"><i></i>${tabCounts.pending} yêu cầu chờ xử lý</span>` : ""}</section>
     <section class="panel approval-center" id="customerRequestCenter">
+      <header class="approval-center-head"><div><span class="approval-head-icon">⌕</span><div><h2>Hộp thư yêu cầu</h2><p>Lọc theo loại yêu cầu, ngày gửi hoặc thông tin khách hàng.</p></div></div><span class="approval-total">${requests.length} yêu cầu</span></header>
       <div class="approval-tabs" role="tablist" aria-label="Lọc yêu cầu khách hàng">${tabs.map(([key, label]) => `<button class="approval-tab ${filters.tab === key ? "active" : ""}" id="approval-tab-${key}" type="button" role="tab" aria-selected="${filters.tab === key}" data-tab="${key}">${label}<span>${tabCounts[key]}</span></button>`).join("")}</div>
       <div class="approval-filters"><label class="approval-search">⌕<input id="approvalSearch" type="search" value="${escapeHtml(filters.query)}" placeholder="${admin ? "Tìm khách hàng, Manager, lý do..." : "Tìm khách hàng hoặc lý do..."}" /></label><label>Từ ngày<input id="approvalFrom" type="date" value="${escapeHtml(filters.from)}" /></label><label>Đến ngày<input id="approvalTo" type="date" value="${escapeHtml(filters.to)}" /></label></div>
       <div id="requestResults">${customerRequestResults(requests, filters, admin)}</div>
@@ -1188,17 +1220,21 @@ function loginView() {
 }
 
 function registerView() {
-  return `<section class="auth-shell"><div class="auth-story register-story"><span class="welcome-chip">THÀNH VIÊN MỚI</span><h1>Gia nhập cộng đồng<br/>milktea-coffee.</h1><p>Chia sẻ khẩu vị để chúng tôi hiểu bạn hơn trong mỗi lần ghé.</p><div class="auth-quote"><span>✦</span><p>Tài khoản giúp theo dõi trải nghiệm của bạn trên toàn hệ thống.</p></div></div><form class="auth-card register-card" id="registerForm"><div class="form-heading"><p class="eyebrow">TẠO TÀI KHOẢN</p><h2>Đăng ký thành viên</h2><p>Điền đầy đủ thông tin bắt buộc bên dưới.</p></div><div class="form-grid"><label>Tên đăng nhập *<input name="tenDangNhap" minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" autocomplete="username" required /></label><label>Họ và tên *<input name="hoTen" minlength="2" maxlength="150" autocomplete="name" required /></label><label>Mật khẩu *<input name="matKhau" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /><small>Từ 8 đến 128 ký tự</small></label><label>Xác nhận mật khẩu *<input name="matKhauXacNhan" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label><label>Năm sinh *<input name="namSinh" type="number" min="1900" max="${new Date().getFullYear()}" required /></label><label>Giới tính<select name="gioiTinh"><option value="khong_cung_cap">Không cung cấp</option><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option></select></label><label>Sở thích mặc định *<select name="soThichId" id="registerPreference" required><option value="">Đang tải...</option></select></label></div><div class="auth-error" id="authError" role="alert"></div><button class="primary auth-submit" type="submit">Tạo tài khoản →</button><p class="auth-switch">Đã có tài khoản? <button type="button" data-view="login">Đăng nhập</button></p></form></section>`;
+  return `<section class="auth-shell register-shell"><div class="auth-story register-story"><span class="welcome-chip">THÀNH VIÊN MỚI</span><h1>Gia nhập cộng đồng<br/>milktea-coffee.</h1><p>Tạo tài khoản nhanh chóng, hoàn thiện hồ sơ khi đăng nhập lần đầu.</p><div class="auth-quote"><span>✦</span><p>Chúng tôi sẽ hỏi thông tin cá nhân sau khi bạn tạo tài khoản.</p></div></div><form class="auth-card register-card" id="registerForm"><div class="register-card-top"><span class="register-mark" aria-hidden="true">✦</span><span class="register-time">MIỄN PHÍ <i>·</i> 3 BƯỚC</span></div><div class="form-heading"><p class="eyebrow">BẮT ĐẦU HÀNH TRÌNH</p><h2>Tạo tài khoản</h2><p>Chỉ cần tên đăng nhập và mật khẩu.</p></div><section class="register-form-section"><div class="register-section-heading"><span>01</span><div><strong>Tài khoản của bạn</strong><small>Dùng để đăng nhập an toàn</small></div></div><div class="form-grid"><label class="full-width">Tên đăng nhập *<input name="tenDangNhap" minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" autocomplete="username" placeholder="Ví dụ: linhnguyen" required /><small>3–100 ký tự: chữ, số, dấu chấm, gạch dưới hoặc gạch nối</small></label><label>Mật khẩu *<span class="register-password-field"><input name="matKhau" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" required /><button class="password-toggle" type="button" data-toggle-password aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button></span><small>Từ 8 đến 128 ký tự</small></label><label class="register-confirm-field">Xác nhận mật khẩu *<span class="register-password-field"><input name="matKhauXacNhan" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Nhập lại mật khẩu" required /><button class="password-toggle" type="button" data-toggle-password aria-label="Hiện mật khẩu xác nhận" aria-pressed="false">Hiện</button></span><small id="registerPasswordMatch" class="register-match-hint" aria-live="polite">Nhập lại mật khẩu để xác nhận</small></label></div></section><div class="auth-error" id="authError" role="alert"></div><button class="primary auth-submit" type="submit">Tạo tài khoản <span aria-hidden="true">→</span></button><p class="register-privacy"><span aria-hidden="true">▣</span> Thông tin của bạn được lưu trữ an toàn.</p><p class="auth-switch">Đã có tài khoản? <button type="button" data-view="login">Đăng nhập</button></p></form></section>`;
+}
+
+function completeProfileView() {
+  return `<dialog class="profile-completion-dialog" id="profileCompletionDialog" aria-labelledby="completionTitle"><form class="profile-completion-card" id="completeProfileForm"><div class="completion-dialog-top"><span class="completion-dialog-mark">MC</span><span class="completion-step">HỒ SƠ THÀNH VIÊN <b>·</b> 01 / 01</span></div><div class="completion-heading"><p class="eyebrow">CHÀO MỪNG ĐẾN VỚI MILKTEA-COFFEE</p><h2 id="completionTitle">Một chút thông tin về bạn</h2><p>Hoàn thiện hồ sơ để cá nhân hóa trải nghiệm của bạn.</p></div><div class="completion-fields"><label class="completion-field full-width"><span>Họ và tên <i>*</i></span><input name="hoTen" minlength="2" maxlength="150" autocomplete="name" placeholder="Tên bạn muốn được gọi" required /></label><label class="completion-field"><span>Gmail / email <i>*</i></span><input name="email" type="email" maxlength="254" autocomplete="email" placeholder="ban@gmail.com" required /><small>Nhập địa chỉ email bạn đang sử dụng.</small></label><label class="completion-field"><span>Năm sinh <i>*</i></span><input name="namSinh" type="number" min="1900" max="${new Date().getFullYear()}" placeholder="Ví dụ: 2000" required /></label><label class="completion-field"><span>Giới tính</span><select name="gioiTinh"><option value="khong_cung_cap">Không cung cấp</option><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option></select></label><label class="completion-field"><span>Sở thích <i>*</i></span><select name="soThichId" id="completionPreference" required><option value="">Chọn sở thích</option></select></label></div><div class="completion-reassurance"><span>✦</span><p>Thông tin của bạn được bảo vệ và có thể cập nhật trong hồ sơ cá nhân.</p></div><div class="auth-error" id="completionError" role="alert" aria-live="polite"></div><footer><button class="primary completion-submit" type="submit">Lưu hồ sơ và tiếp tục <span>→</span></button></footer></form></dialog>`;
 }
 
 function customerHome() {
   return `<section class="customer-hero"><div><span class="welcome-chip">THÀNH VIÊN MILKTEA-COFFEE</span><h1 id="customerGreeting">Xin chào!</h1><p>Một ngày thật dịu dàng cùng ly trà bạn yêu thích.</p><div class="member-code"><span>Mã thành viên</span><strong id="customerMemberCode">—</strong></div></div><div class="hero-cup" aria-hidden="true"><span>MC</span></div></section>
   <section class="customer-stats"><article><span class="soft-icon">✓</span><div><small>Khảo sát đã hoàn thành</small><strong id="custStatCompleted">0</strong><p>Đóng góp ý kiến cho quán</p></div></article><article><span class="soft-icon amber">☆</span><div><small>Đánh giá trung bình</small><strong id="custStatAvg">4.8</strong><p>Cảm ơn những chia sẻ của bạn</p></div></article><article><span class="soft-icon rose">◌</span><div><small>Phản hồi đã gửi</small><strong id="custStatFeedback">0</strong><p id="feedbackStatusNote">100% đã được tiếp nhận</p></div></article></section>
-  <section class="customer-layout"><div><div class="section-title"><div><p class="eyebrow">DÀNH CHO BẠN</p><h2>Khảo sát đang chờ</h2></div><button class="text-button" data-view="my-surveys">Xem tất cả →</button></div><article class="task-card"><div class="task-art">☕</div><div class="task-copy"><span class="status active">Đang mở</span><h3>Khảo sát sản phẩm mới</h3><p>Chia sẻ trải nghiệm gần nhất của bạn tại milktea-coffee.</p><div class="task-meta"><span>◷ Khoảng 3 phút</span><span>▣ Đang mở</span></div></div><button class="primary" id="startSurvey">Bắt đầu →</button></article></div><aside class="panel quick-actions"><div class="panel-title"><div><h2>Truy cập nhanh</h2><p>Chúng tôi luôn muốn lắng nghe bạn</p></div></div><button data-view="my-feedback"><span>♡</span><div><strong>Gửi phản hồi</strong><small>Chia sẻ trải nghiệm đồ uống</small></div><b>→</b></button><button data-view="profile"><span>♧</span><div><strong>Cập nhật hồ sơ</strong><small>Sở thích và thông tin cá nhân</small></div><b>→</b></button></aside></section>`;
+  <section class="customer-layout"><div><div class="section-title"><div><p class="eyebrow">DÀNH CHO BẠN</p><h2>Khảo sát đang chờ</h2></div><button class="text-button" data-view="my-surveys">Xem tất cả →</button></div><article class="task-card"><div class="task-art">☕</div><div class="task-copy"><span class="status active">Đang mở</span><h3>Khảo sát sản phẩm mới</h3><p>Chia sẻ trải nghiệm gần nhất của bạn tại milktea-coffee.</p><div class="task-meta"><span>◷ Khoảng 3 phút</span><span>▣ Đang mở</span></div></div><button class="primary" id="startSurvey">Bắt đầu →</button></article></div><aside class="panel quick-actions"><div class="panel-title"><div><h2>Truy cập nhanh</h2><p>Chúng tôi luôn muốn lắng nghe bạn</p></div></div><button data-view="my-feedback"><span>♡</span><div><strong>Gửi phản hồi</strong><small>Chia sẻ trải nghiệm đồ uống</small></div><b>→</b></button><button data-view="profile"><span>♧</span><div><strong>Cập nhật hồ sơ</strong><small>Sở thích và thông tin cá nhân</small></div><b>→</b></button></aside></section>${completeProfileView()}`;
 }
 
 function profileView() {
-  return `<section class="page-heading compact"><div><p class="eyebrow">TÀI KHOẢN CỦA TÔI</p><h1>Hồ sơ cá nhân</h1><p>Thông tin này giúp chúng tôi mang đến trải nghiệm phù hợp hơn.</p></div></section><section class="profile-layout"><aside class="panel profile-summary"><div class="large-avatar">?</div><h2></h2><p></p><span class="status active"><i></i>Đang hoạt động</span><dl><div><dt>Mã thành viên</dt><dd></dd></div><div><dt>Tham gia từ</dt><dd></dd></div></dl></aside><div class="profile-settings"><form class="panel profile-form" id="profileForm"><div class="form-heading"><h2>Thông tin cơ bản</h2><p>Các trường có dấu * là bắt buộc.</p></div><div class="form-grid"><label>Họ và tên *<input name="hoTen" required /></label><label>Năm sinh *<input name="namSinh" type="number" min="1900" max="${new Date().getFullYear()}" required /></label><label>Giới tính<select name="gioiTinh"><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option><option value="khong_cung_cap">Không cung cấp</option></select></label><label>Sở thích mặc định *<select name="soThichId" id="profilePreference" required></select></label></div><div class="form-note">✦ Sở thích được dùng để cá nhân hóa khảo sát và gợi ý sản phẩm.</div><footer><button type="button" class="outline" id="profileCancel">Hủy thay đổi</button><button class="primary" type="submit">Lưu hồ sơ</button></footer></form><form class="panel profile-form security-form" id="passwordForm"><div class="form-heading"><h2>Bảo mật tài khoản</h2><p>Đổi mật khẩu định kỳ để bảo vệ tài khoản của bạn.</p></div><div class="form-grid"><label>Mật khẩu hiện tại *<input name="matKhauHienTai" type="password" minlength="8" maxlength="128" autocomplete="current-password" required /></label><label>Mật khẩu mới *<input name="matKhauMoi" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label><label class="full-width">Xác nhận mật khẩu mới *<input name="matKhauMoiXacNhan" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label></div><div class="auth-error" id="passwordError" role="alert" aria-live="polite"></div><footer><button class="primary" type="submit">Đổi mật khẩu</button></footer></form></div></section>`;
+  return `<section class="page-heading compact"><div><p class="eyebrow">TÀI KHOẢN CỦA TÔI</p><h1>Hồ sơ cá nhân</h1><p>Thông tin này giúp chúng tôi mang đến trải nghiệm phù hợp hơn.</p></div></section><section class="profile-layout"><aside class="panel profile-summary"><div class="large-avatar">?</div><h2></h2><p></p><span class="status active"><i></i>Đang hoạt động</span><dl><div><dt>Mã thành viên</dt><dd></dd></div><div><dt>Tham gia từ</dt><dd></dd></div></dl></aside><div class="profile-settings"><form class="panel profile-form" id="profileForm"><div class="form-heading"><h2>Thông tin cơ bản</h2><p>Các trường có dấu * là bắt buộc.</p></div><div class="form-grid"><label>Họ và tên *<input name="hoTen" required /></label><label>Gmail / email *<input name="email" type="email" maxlength="254" autocomplete="email" required /></label><label>Năm sinh *<input name="namSinh" type="number" min="1900" max="${new Date().getFullYear()}" required /></label><label>Giới tính<select name="gioiTinh"><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option><option value="khong_cung_cap">Không cung cấp</option></select></label><label>Sở thích mặc định *<select name="soThichId" id="profilePreference" required></select></label></div><div class="form-note">✦ Sở thích được dùng để cá nhân hóa khảo sát và gợi ý sản phẩm.</div><footer><button type="button" class="outline" id="profileCancel">Hủy thay đổi</button><button class="primary" type="submit">Lưu hồ sơ</button></footer></form><form class="panel profile-form security-form" id="passwordForm"><div class="form-heading"><h2>Bảo mật tài khoản</h2><p>Đổi mật khẩu định kỳ để bảo vệ tài khoản của bạn.</p></div><div class="form-grid"><label>Mật khẩu hiện tại *<input name="matKhauHienTai" type="password" minlength="8" maxlength="128" autocomplete="current-password" required /></label><label>Mật khẩu mới *<input name="matKhauMoi" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label><label class="full-width">Xác nhận mật khẩu mới *<input name="matKhauMoiXacNhan" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label></div><div class="auth-error" id="passwordError" role="alert" aria-live="polite"></div><footer><button class="primary" type="submit">Đổi mật khẩu</button></footer></form></div></section>`;
 }
 
 function myFeedbackView() {
@@ -1342,16 +1378,6 @@ async function setupCustomerPage(view) {
   const errorBox = document.querySelector("#authError");
   const showError = error => { if (errorBox) errorBox.textContent = error.message; else notify(error.message); };
 
-  if (view === "register") {
-    try {
-      customerSession.options ||= await customerApi.options();
-      const select = document.querySelector("#registerPreference");
-      if (select) {
-        select.innerHTML = `<option value="">Chọn sở thích</option>${customerSession.options.preferences.map(item => `<option value="${item.id}">${escapeHtml(item.tenNhom)}</option>`).join("")}`;
-      }
-    } catch (error) { showError(error); }
-  }
-
   document.querySelector("#loginForm")?.addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1364,16 +1390,49 @@ async function setupCustomerPage(view) {
     } catch (error) { showError(error); setFormBusy(form, false); }
   });
 
-  document.querySelector("#registerForm")?.addEventListener("submit", async event => {
+  const registerForm = document.querySelector("#registerForm");
+  registerForm?.querySelectorAll("[data-toggle-password]").forEach(button => button.addEventListener("click", () => {
+    const input = button.parentElement.querySelector("input");
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    button.textContent = visible ? "Ẩn" : "Hiện";
+    button.setAttribute("aria-label", `${visible ? "Ẩn" : "Hiện"} ${input.name === "matKhau" ? "mật khẩu" : "mật khẩu xác nhận"}`);
+    button.setAttribute("aria-pressed", String(visible));
+    input.focus();
+  }));
+
+  const passwordInput = registerForm?.elements.namedItem("matKhau");
+  const passwordConfirmInput = registerForm?.elements.namedItem("matKhauXacNhan");
+  const passwordMatchHint = document.querySelector("#registerPasswordMatch");
+  const updatePasswordMatch = () => {
+    if (!passwordConfirmInput?.value) {
+      passwordMatchHint.textContent = "Nhập lại mật khẩu để xác nhận";
+      passwordMatchHint.classList.remove("is-match", "is-mismatch");
+    } else if (passwordInput.value === passwordConfirmInput.value) {
+      passwordMatchHint.textContent = "Hai mật khẩu đã khớp";
+      passwordMatchHint.classList.add("is-match");
+      passwordMatchHint.classList.remove("is-mismatch");
+    } else {
+      passwordMatchHint.textContent = "Mật khẩu chưa khớp";
+      passwordMatchHint.classList.add("is-mismatch");
+      passwordMatchHint.classList.remove("is-match");
+    }
+  };
+  passwordInput?.addEventListener("input", updatePasswordMatch);
+  passwordConfirmInput?.addEventListener("input", updatePasswordMatch);
+
+  registerForm?.addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
     setFormBusy(form, true);
     try {
       const payload = formPayload(form);
       if (payload.matKhau !== payload.matKhauXacNhan) throw new Error("Mật khẩu xác nhận chưa khớp");
-      payload.namSinh = Number(payload.namSinh); payload.soThichId = Number(payload.soThichId);
-      const data = await customerApi.register(payload); customerSession.profile = data.profile;
-      notify("Đăng ký thành công"); applyRole("customer");
+      await customerApi.register(payload);
+      customerApi.logout();
+      customerSession.profile = null;
+      notify("Đăng ký thành công. Hãy đăng nhập để hoàn thiện thông tin cá nhân.");
+      render("login");
     } catch (error) { showError(error); setFormBusy(form, false); }
   });
 
@@ -1384,14 +1443,46 @@ async function setupCustomerPage(view) {
     if (profileWasMissing) customerSession.profile = (await customerApi.me()).profile;
     const profile = customerSession.profile;
 
-    document.querySelector("#userInitials").textContent = initials(profile.hoTen);
-    document.querySelector("#userName").textContent = profile.hoTen;
+    if (!profile.profileComplete) {
+      if (view !== "customer-home") { render("customer-home"); return; }
+      customerSession.options ||= await customerApi.options();
+      const select = document.querySelector("#completionPreference");
+      select.innerHTML = `<option value="">Chọn sở thích</option>${customerSession.options.preferences.map(item => `<option value="${item.id}">${escapeHtml(item.tenNhom)}</option>`).join("")}`;
+      const dialog = document.querySelector("#profileCompletionDialog");
+      const form = document.querySelector("#completeProfileForm");
+      form.elements.hoTen.value = profile.hoTen || "";
+      form.elements.email.value = profile.email?.endsWith("@example.invalid") ? "" : (profile.email || "");
+      form.elements.namSinh.value = profile.namSinh || "";
+      form.elements.gioiTinh.value = profile.gioiTinh || "khong_cung_cap";
+      form.elements.soThichId.value = profile.soThichId || "";
+      dialog.addEventListener("cancel", event => event.preventDefault());
+      dialog.showModal();
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const payload = formPayload(form);
+        payload.namSinh = Number(payload.namSinh);
+        payload.soThichId = Number(payload.soThichId);
+        form.querySelector("button[type='submit']").dataset.label = "Lưu thông tin và tiếp tục →";
+        setFormBusy(form, true);
+        try {
+          customerSession.profile = (await customerApi.updateMe(payload)).profile;
+          notify("Đã lưu hồ sơ, chào mừng bạn!");
+          render("customer-home");
+        } catch (error) {
+          document.querySelector("#completionError").textContent = error.message;
+          setFormBusy(form, false);
+        }
+      });
+    }
+
+    document.querySelector("#userInitials").textContent = initials(profile.hoTen || profile.tenDangNhap);
+    document.querySelector("#userName").textContent = profile.hoTen || profile.tenDangNhap;
     document.querySelector("#userRole").textContent = `Khách hàng · ${profile.maThanhVien}`;
 
-    if (profileWasMissing && ["profile", "customer-home"].includes(view)) { render(view); return; }
+    if (profileWasMissing && profile.profileComplete && ["profile", "customer-home"].includes(view)) { render(view); return; }
 
     if (view === "customer-home") {
-      document.querySelector("#customerGreeting").textContent = `Xin chào, ${profile.hoTen}!`;
+      document.querySelector("#customerGreeting").textContent = profile.hoTen ? `Xin chào, ${profile.hoTen}!` : "Xin chào!";
       document.querySelector("#customerMemberCode").textContent = profile.maThanhVien;
       const [surveyData, feedbackData] = await Promise.all([customerApi.surveys(), customerApi.feedback()]);
       const completedSurveys = surveyData.surveys.filter(survey => survey.ngayHoanThanh).length;
@@ -1447,10 +1538,12 @@ async function setupCustomerPage(view) {
       }
       const form = document.querySelector("#profileForm");
       form.elements.hoTen.value = profile.hoTen;
+      form.elements.email.value = profile.email || "";
       form.elements.namSinh.value = profile.namSinh;
       form.elements.gioiTinh.value = profile.gioiTinh;
       const restoreProfileForm = () => {
         form.elements.hoTen.value = profile.hoTen;
+        form.elements.email.value = profile.email || "";
         form.elements.namSinh.value = profile.namSinh;
         form.elements.gioiTinh.value = profile.gioiTinh;
         form.elements.soThichId.value = profile.soThichId;
@@ -1832,12 +1925,17 @@ async function setupInternalPage(view, renderVersion) {
         internalSession.customerRequests = reqList.requests;
       },
       customers: async () => {
-        const [custList, catList] = await Promise.all([internalApi.customers(), internalApi.catalogs()]);
+        const requestList = currentRole === "manager" ? internalApi.customerRequests() : Promise.resolve({ requests: [] });
+        const [custList, catList, reqList] = await Promise.all([internalApi.customers(), internalApi.catalogs(), requestList]);
         internalSession.customers = custList.customers;
         internalSession.catalogs = catList;
+        if (currentRole === "manager") internalSession.customerRequests = reqList.requests;
       },
       "create-customer": async () => { internalSession.catalogs ||= await internalApi.catalogs(); },
-      "customer-requests": async () => { internalSession.customerRequests = (await internalApi.customerRequests()).requests; },
+      "customer-requests": async () => {
+        internalSession.customerRequests = (await internalApi.customerRequests()).requests;
+        if (currentRole === "manager") internalSession.loaded.delete("customers");
+      },
       feedback: async () => { internalSession.feedback = (await internalApi.feedback()).feedback; },
       surveys: async () => { internalSession.surveys = (await internalApi.surveys()).surveys; },
       "create-survey": async () => {
@@ -1981,7 +2079,7 @@ async function setupInternalPage(view, renderVersion) {
         const q = e.target.value.toLowerCase();
         if (internalSession.customerFilters.preference && String(c.preferenceId) !== String(internalSession.customerFilters.preference)) return false;
         if (internalSession.customerFilters.status && c.status !== internalSession.customerFilters.status) return false;
-        return `${c.name} ${c.code} ${c.username || ""} ${c.preference || ""}`.toLowerCase().includes(q);
+        return `${c.name} ${c.code} ${c.username || ""} ${c.email || ""} ${c.preference || ""}`.toLowerCase().includes(q);
       });
       document.querySelector("#customerResults").innerHTML = filtered.length
         ? customerTable(filtered, true)
@@ -2000,6 +2098,7 @@ async function setupInternalPage(view, renderVersion) {
 
         customerEditForm.dataset.id = customer.id;
         document.querySelector("#editCustomerName").value = customer.name;
+        document.querySelector("#editCustomerEmail").value = customer.email || "";
         document.querySelector("#editCustomerBirthYear").value = customer.birth_year || customer.birthYear || (new Date().getFullYear() - customer.age);
         document.querySelector("#editCustomerGender").value = customer.gender || "khong_cung_cap";
         document.querySelector("#editCustomerPreference").value = customer.preferenceId || "";
@@ -2017,6 +2116,7 @@ async function setupInternalPage(view, renderVersion) {
       const id = form.dataset.id;
       const payload = {
         hoTen: form.elements.hoTen.value.trim(),
+        email: form.elements.email.value.trim(),
         namSinh: Number(form.elements.namSinh.value),
         gioiTinh: form.elements.gioiTinh.value,
         soThichId: Number(form.elements.soThichId.value)
@@ -2044,6 +2144,7 @@ async function setupInternalPage(view, renderVersion) {
         const customer = internalSession.customers.find(c => String(c.id) === String(id));
         if (!customer) return;
 
+        customerLockDialog.classList.toggle("is-unlock", isUnlock);
         customerLockForm.dataset.id = customer.id;
         customerLockForm.dataset.action = action;
 
@@ -2059,6 +2160,8 @@ async function setupInternalPage(view, renderVersion) {
         document.querySelector("#lockReasonLabel").textContent = isUnlock
           ? "Lý do đề xuất mở khóa (bắt buộc) *"
           : "Lý do đề xuất khóa (bắt buộc) *";
+        document.querySelector("#lockDialogIcon").textContent = isUnlock ? "🔓" : "⚑";
+        document.querySelector("#lockDialogAccountState").textContent = statusLabel(customer.status);
 
         const reasonInput = document.querySelector("#lockDialogReason");
         reasonInput.value = "";
@@ -2067,7 +2170,8 @@ async function setupInternalPage(view, renderVersion) {
           : "Mô tả hành vi vi phạm của khách hàng (ví dụ: spam đánh giá tiêu cực, quấy rối nhân viên, vi phạm điều khoản chính sách)...";
 
         const submitBtn = document.querySelector("#lockDialogSubmitBtn");
-        submitBtn.textContent = isUnlock ? "Gửi đề xuất mở khóa lên Admin" : "Gửi đề xuất khóa lên Admin";
+        submitBtn.dataset.label = isUnlock ? "🔓 Gửi đề xuất mở khóa lên Admin" : "⚑ Gửi đề xuất khóa lên Admin";
+        submitBtn.innerHTML = isUnlock ? "<span aria-hidden=\"true\">🔓</span> Gửi đề xuất mở khóa lên Admin" : "<span aria-hidden=\"true\">⚑</span> Gửi đề xuất khóa lên Admin";
         submitBtn.style.background = isUnlock ? "var(--green)" : "#c04a36";
         submitBtn.style.borderColor = isUnlock ? "var(--green)" : "#c04a36";
 
@@ -2077,6 +2181,7 @@ async function setupInternalPage(view, renderVersion) {
         document.querySelector("#lockReasonCount").textContent = "0";
         document.querySelector("#customerLockError").textContent = "";
         customerLockDialog.showModal();
+        reasonInput.focus();
       });
     });
 
@@ -2085,6 +2190,7 @@ async function setupInternalPage(view, renderVersion) {
     });
 
     document.querySelector("#customerLockCancel")?.addEventListener("click", () => customerLockDialog.close());
+    document.querySelector("#customerLockClose")?.addEventListener("click", () => customerLockDialog.close());
 
     // Submit Đề xuất khóa / mở khóa khách hàng
     customerLockForm?.addEventListener("submit", async event => {
@@ -2096,11 +2202,25 @@ async function setupInternalPage(view, renderVersion) {
       const reason = document.querySelector("#lockDialogReason").value.trim();
       setFormBusy(form, true);
       try {
-        await internalApi.createCustomerRequest({
+        const createdRequest = await internalApi.createCustomerRequest({
           customerId: Number(id),
           action,
           reason
         });
+        const customer = internalSession.customers.find(item => String(item.id) === String(id));
+        internalSession.customerRequests = [
+          {
+            id: createdRequest.id,
+            customerId: Number(id),
+            action,
+            reason,
+            status: "pending",
+            createdAt: new Date().toISOString(),
+            customerName: customer?.name || "Khách hàng",
+            requesterName: internalSession.account?.fullName || internalSession.account?.username || "Bạn"
+          },
+          ...internalSession.customerRequests.filter(request => !(String(request.customerId) === String(id) && request.action === action && request.status === "pending"))
+        ];
         internalSession.loaded.delete("customer-requests");
         internalSession.loaded.delete("dashboard");
         notify(isUnlock ? "Đã gửi đề xuất mở khóa lên Admin chờ phê duyệt" : "Đã gửi đề xuất khóa lên Admin chờ phê duyệt");
@@ -2386,6 +2506,45 @@ async function setupInternalPage(view, renderVersion) {
 
     if (view === "edit-survey") {
       const form = document.querySelector("#editSurveyForm");
+      const questionList = document.querySelector("#surveyQuestions");
+      const renumberQuestions = () => questionList?.querySelectorAll(".survey-edit-question").forEach((row, index) => {
+        const number = String(index + 1).padStart(2, "0");
+        row.querySelector(".survey-question-number").textContent = number;
+        row.querySelector(".survey-edit-question-heading strong").textContent = `Câu hỏi ${index + 1}`;
+        row.querySelector(".remove-survey-question")?.setAttribute("aria-label", `Xóa câu hỏi ${index + 1}`);
+      });
+      const updateQuestionCount = () => {
+        const count = questionList?.querySelectorAll(".survey-question-input").length || 0;
+        const countLabel = document.querySelector(".survey-question-count");
+        if (countLabel) countLabel.textContent = `${count} câu hỏi`;
+      };
+
+      form?.querySelector("#addSurveyQuestion")?.addEventListener("click", () => {
+        const index = questionList.querySelectorAll(".survey-question-input").length + 1;
+        questionList.insertAdjacentHTML("beforeend", `
+          <div class="survey-question-input survey-edit-question">
+            <div class="survey-edit-question-heading"><span class="survey-question-number">${String(index).padStart(2, "0")}</span><div><strong>Câu hỏi ${index}</strong><small>Nội dung và các lựa chọn trả lời</small></div><button type="button" class="outline remove-survey-question" aria-label="Xóa câu hỏi ${index}">Xóa</button></div>
+            <div class="survey-edit-question-fields">
+              <label>Câu hỏi *<input name="question" minlength="3" maxlength="1000" placeholder="Nhập nội dung câu hỏi" required /></label>
+              <label>Các lựa chọn *<input name="choices" maxlength="5000" placeholder="Ví dụ: Rất ngon; Bình thường; Chưa phù hợp" required /><small>Phân tách từng lựa chọn bằng dấu chấm phẩy (;).</small></label>
+            </div>
+          </div>
+        `);
+        renumberQuestions();
+        updateQuestionCount();
+      });
+
+      questionList?.addEventListener("click", event => {
+        if (!event.target.closest(".remove-survey-question")) return;
+        if (questionList.querySelectorAll(".survey-question-input").length <= 1) {
+          notify("Khảo sát phải có ít nhất một câu hỏi");
+          return;
+        }
+        event.target.closest(".survey-question-input").remove();
+        renumberQuestions();
+        updateQuestionCount();
+      });
+
       form?.addEventListener("submit", async event => {
         event.preventDefault();
         const payload = formPayload(form);
@@ -2394,6 +2553,11 @@ async function setupInternalPage(view, renderVersion) {
           choices: row.querySelector('[name="choices"]').value.split(";").map(v => v.trim()).filter(Boolean)
         }));
         const deadline = payload.endAt ? new Date(payload.endAt) : null;
+        const errorBox = document.querySelector("#surveyError");
+        if (questions.some(question => question.choices.length < 2)) {
+          errorBox.textContent = "Mỗi câu hỏi cần ít nhất hai lựa chọn, phân tách bằng dấu chấm phẩy.";
+          return;
+        }
         setFormBusy(form, true);
         try {
           await internalApi.updateSurvey(form.dataset.id, {

@@ -11,6 +11,8 @@ CRM quản lý và chăm sóc khách hàng cho chuỗi trà sữa/cà phê. Giao
 3. Tiếp tục chạy `database/07_notifications_and_replies.sql`.
 4. Chạy `database/10_admin_governance.sql` để bật quản lý Manager và yêu cầu duyệt khóa khách hàng.
 5. Chạy `database/11_remove_customer_deletion_audit.sql` để vô hiệu hóa các yêu cầu xóa cũ; nhật ký Audit Log trước đây (nếu có) được giữ lại trong database nhưng không còn chức năng xem/rollback.
+6. Chạy `database/12_allow_unlock_customer_request.sql` để Manager có thể gửi yêu cầu mở khóa lên Admin phê duyệt.
+7. Chạy `database/14_customer_email_and_onboarding.sql` để thêm email khách hàng và luồng hoàn thiện hồ sơ sau đăng ký.
 
 Có thể mở từng file SQL trong VS Code, copy toàn bộ nội dung, dán vào Query Tool của đúng database rồi nhấn **Execute**. Chạy các migration 07 và 10 theo đúng thứ tự trên.
 
@@ -79,5 +81,7 @@ CRM_Create_All.sql
 07_notifications_and_replies.sql
 10_admin_governance.sql
 11_remove_customer_deletion_audit.sql
+12_allow_unlock_customer_request.sql
+14_customer_email_and_onboarding.sql
 
 Nếu pgAdmin báo lỗi, chạy ROLLBACK; để thoát transaction lỗi, rồi xử lý lỗi đầu tiên trong tab Messages trước khi chạy lại.

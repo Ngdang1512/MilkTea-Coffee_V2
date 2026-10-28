@@ -60,10 +60,11 @@ CREATE TABLE "nhom_so_thich" (
 CREATE TABLE "khach_hang" (
   "tai_khoan_id" bigint PRIMARY KEY NOT NULL,
   "ma_thanh_vien" varchar(30) UNIQUE NOT NULL,
-  "ho_ten" varchar(150) NOT NULL,
-  "nam_sinh" smallint NOT NULL,
+  "ho_ten" varchar(150),
+  "email" varchar(254),
+  "nam_sinh" smallint,
   "gioi_tinh" gioi_tinh NOT NULL DEFAULT 'khong_cung_cap',
-  "so_thich_id" bigint NOT NULL,
+  "so_thich_id" bigint,
   "ngay_cap_nhat" timestamptz NOT NULL DEFAULT (now()),
   CONSTRAINT "ck_khach_hang_ho_ten" CHECK (length(trim(ho_ten)) > 0),
   CONSTRAINT "ck_khach_hang_ma" CHECK (length(trim(ma_thanh_vien)) > 0),
@@ -150,6 +151,7 @@ CREATE TABLE "cau_tra_loi" (
 CREATE INDEX ON "tai_khoan" ("vai_tro", "trang_thai");
 
 CREATE INDEX ON "khach_hang" ("so_thich_id");
+CREATE UNIQUE INDEX "ux_khach_hang_email_ci" ON "khach_hang" (lower("email")) WHERE "email" IS NOT NULL;
 
 CREATE INDEX ON "khach_hang" ("nam_sinh");
 
@@ -579,6 +581,8 @@ INSERT INTO khach_hang(tai_khoan_id,ma_thanh_vien,ho_ten,nam_sinh,gioi_tinh,so_t
 (9,'TV0009','Đỗ Quốc Bảo',extract(year FROM current_date)::int-42,'nam',2),
 (10,'TV0010','Bùi Thanh Vy',extract(year FROM current_date)::int-18,'nu',3),
 (11,'TV0011','Võ Đức Anh',extract(year FROM current_date)::int-31,'nam',4);
+UPDATE khach_hang
+   SET email = 'customer' || lpad(tai_khoan_id::text, 8, '0') || '@example.invalid';
 INSERT INTO do_uong(id,ma_do_uong,ten_do_uong,mo_ta,dang_kinh_doanh) VALUES
 (1,'TS01','Trà sữa Oolong nướng','Trà Oolong, sữa và trân châu',true),
 (2,'CP01','Cà phê muối','Cà phê cùng lớp kem muối',true),

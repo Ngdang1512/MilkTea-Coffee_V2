@@ -57,10 +57,11 @@ CREATE TABLE "nhom_so_thich" (
 CREATE TABLE "khach_hang" (
   "tai_khoan_id" bigint PRIMARY KEY NOT NULL,
   "ma_thanh_vien" varchar(30) UNIQUE NOT NULL,
-  "ho_ten" varchar(150) NOT NULL,
-  "nam_sinh" smallint NOT NULL,
+  "ho_ten" varchar(150),
+  "email" varchar(254),
+  "nam_sinh" smallint,
   "gioi_tinh" gioi_tinh NOT NULL DEFAULT 'khong_cung_cap',
-  "so_thich_id" bigint NOT NULL,
+  "so_thich_id" bigint,
   "ngay_cap_nhat" timestamptz NOT NULL DEFAULT (now()),
   CONSTRAINT "ck_khach_hang_ho_ten" CHECK (length(trim(ho_ten)) > 0),
   CONSTRAINT "ck_khach_hang_ma" CHECK (length(trim(ma_thanh_vien)) > 0),
@@ -147,6 +148,7 @@ CREATE TABLE "cau_tra_loi" (
 CREATE INDEX ON "tai_khoan" ("vai_tro", "trang_thai");
 
 CREATE INDEX ON "khach_hang" ("so_thich_id");
+CREATE UNIQUE INDEX "ux_khach_hang_email_ci" ON "khach_hang" (lower("email")) WHERE "email" IS NOT NULL;
 
 CREATE INDEX ON "khach_hang" ("nam_sinh");
 

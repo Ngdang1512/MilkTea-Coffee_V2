@@ -39,9 +39,7 @@ export const customerApi = {
     return data;
   },
   async register(payload) {
-    const data = await request("/auth/register", { method: "POST", body: payload });
-    localStorage.setItem(TOKEN_KEY, data.token);
-    return data;
+    return request("/auth/register", { method: "POST", body: payload });
   },
   me: () => request("/me"),
   updateMe: profile => request("/me", { method: "PATCH", body: profile }),

@@ -18,7 +18,7 @@ Kiểm tra `http://127.0.0.1:3000/health`. API chỉ báo `status: ok` khi truy 
 
 ## Database
 
-Tạo database `crm_tra_sua_ca_phe`, nạp schema và dữ liệu mẫu từ `database/CRM_Create_All.sql` trên database trống, rồi chạy migration `database/07_notifications_and_replies.sql` và `database/10_admin_governance.sql`. Với database đã sử dụng, không chạy script khởi tạo; xem `database/README.md` và chỉ áp dụng migration tương ứng.
+Tạo database `crm_tra_sua_ca_phe`, nạp schema và dữ liệu mẫu từ `database/CRM_Create_All.sql` trên database trống, rồi chạy migration `database/07_notifications_and_replies.sql`, `database/10_admin_governance.sql`, `database/11_remove_customer_deletion_audit.sql`, `database/12_allow_unlock_customer_request.sql` và `database/14_customer_email_and_onboarding.sql`. Với database đã sử dụng, không chạy script khởi tạo; xem `database/README.md` và chỉ áp dụng migration tương ứng. Migration 14 thêm email và địa chỉ giả `.invalid` cho hồ sơ cũ; đây không phải hộp thư Gmail.
 
 ## API được frontend sử dụng
 
@@ -28,7 +28,7 @@ Các phiên đăng nhập dùng Bearer token có hạn 8 giờ; ID tài khoản 
 |---|---|---|
 | `GET` | `/health` | Kiểm tra API và PostgreSQL |
 | `POST` | `/auth/register`, `/auth/login` | Đăng ký và đăng nhập khách hàng |
-| `GET` | `/catalogs/options` | Danh mục dùng khi đăng ký/phản hồi |
+| `GET` | `/catalogs/options` | Danh mục dùng khi hoàn thiện hồ sơ/phản hồi |
 | `GET/PATCH` | `/me` | Đọc/cập nhật hồ sơ khách hàng |
 | `GET/POST` | `/me/feedback` | Lịch sử và gửi phản hồi |
 | `GET` | `/me/surveys`, `/me/surveys/{id}` | Khảo sát đã phân phối |

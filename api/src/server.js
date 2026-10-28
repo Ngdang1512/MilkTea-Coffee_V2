@@ -40,6 +40,13 @@ function requireValue(value, name, { min = 1, max = 1000 } = {}) {
   return value.trim();
 }
 
+function requireEmail(value) {
+  const email = requireValue(value, "Gmail / email", { max: 254 }).toLocaleLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Gmail / email chưa đúng định dạng");
+  if (email.endsWith("@example.invalid")) throw new HttpError(400, "Vui lòng nhập email bạn đang sử dụng thay cho địa chỉ mẫu");
+  return email;
+}
+
 function requireInteger(value, name, min = 1, max = Number.MAX_SAFE_INTEGER) {
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < min || number > max) throw new HttpError(400, `${name} không hợp lệ`);
@@ -116,12 +123,13 @@ function mapDatabaseError(error) {
 async function getProfile(accountId) {
   const { rows } = await pool.query(
     `SELECT t.id, t.ten_dang_nhap AS "tenDangNhap", h.ma_thanh_vien AS "maThanhVien",
-            h.ho_ten AS "hoTen", h.nam_sinh AS "namSinh", h.gioi_tinh AS "gioiTinh",
+            h.ho_ten AS "hoTen", h.email, h.nam_sinh AS "namSinh", h.gioi_tinh AS "gioiTinh",
             h.so_thich_id AS "soThichId", s.ten_nhom AS "soThich",
+            (h.ho_ten IS NOT NULL AND h.email IS NOT NULL AND h.email NOT LIKE '%@example.invalid' AND h.nam_sinh IS NOT NULL AND h.so_thich_id IS NOT NULL) AS "profileComplete",
             t.trang_thai AS status, t.ngay_tao AS "ngayTao"
        FROM tai_khoan t
        JOIN khach_hang h ON h.tai_khoan_id = t.id
-       JOIN nhom_so_thich s ON s.id = h.so_thich_id
+       LEFT JOIN nhom_so_thich s ON s.id = h.so_thich_id
       WHERE t.id = $1 AND t.vai_tro = 'customer'`,
     [accountId]
   );
@@ -155,18 +163,26 @@ async function login(body, allowedRoles) {
   return { token: createToken(publicAccount), publicAccount };
 }
 
-async function createCustomerAccount(client, data, creatorId = null) {
+async function createCustomerAccount(client, data, creatorId = null, { allowIncompleteProfile = false } = {}) {
   const username = requireValue(data.tenDangNhap, "Tên đăng nhập", { min: 3, max: 100 }).toLocaleLowerCase();
   if (!/^[a-z0-9._-]+$/.test(username)) throw new HttpError(400, "Tên đăng nhập chỉ được gồm chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang");
   const password = requirePassword(data.matKhau);
-  const fullName = requireValue(data.hoTen, "Họ và tên", { min: 2, max: 150 });
-  const birthYear = requireInteger(data.namSinh, "Năm sinh", 1900, new Date().getFullYear());
-  const preferenceId = requireInteger(data.soThichId, "Sở thích");
+  const hasProfile = [data.hoTen, data.email, data.namSinh, data.soThichId].some(value => value != null && value !== "");
+  if (hasProfile && ![data.hoTen, data.email, data.namSinh, data.soThichId].every(value => value != null && value !== "")) {
+    throw new HttpError(400, "Hãy điền đầy đủ thông tin cá nhân và email");
+  }
+  if (!hasProfile && !allowIncompleteProfile) throw new HttpError(400, "Cần nhập đầy đủ thông tin cá nhân khách hàng");
+  const fullName = hasProfile ? requireValue(data.hoTen, "Họ và tên", { min: 2, max: 150 }) : null;
+  const email = hasProfile ? requireEmail(data.email) : null;
+  const birthYear = hasProfile ? requireInteger(data.namSinh, "Năm sinh", 1900, new Date().getFullYear()) : null;
+  const preferenceId = hasProfile ? requireInteger(data.soThichId, "Sở thích") : null;
   const gender = data.gioiTinh || "khong_cung_cap";
   if (!["nam", "nu", "khac", "khong_cung_cap"].includes(gender)) throw new HttpError(400, "Giới tính không hợp lệ");
 
-  const preference = await client.query("SELECT id FROM nhom_so_thich WHERE id = $1 AND dang_su_dung", [preferenceId]);
-  if (!preference.rowCount) throw new HttpError(400, "Sở thích không tồn tại hoặc đã ngừng sử dụng");
+  if (hasProfile) {
+    const preference = await client.query("SELECT id FROM nhom_so_thich WHERE id = $1 AND dang_su_dung", [preferenceId]);
+    if (!preference.rowCount) throw new HttpError(400, "Sở thích không tồn tại hoặc đã ngừng sử dụng");
+  }
   const hash = await hashPassword(password);
   const { rows } = await client.query(
     `INSERT INTO tai_khoan(ten_dang_nhap, mat_khau_hash, vai_tro, nguoi_tao_id)
@@ -176,9 +192,9 @@ async function createCustomerAccount(client, data, creatorId = null) {
   const accountId = rows[0].id;
   const code = `TV${String(accountId).padStart(6, "0")}`;
   await client.query(
-    `INSERT INTO khach_hang(tai_khoan_id, ma_thanh_vien, ho_ten, nam_sinh, gioi_tinh, so_thich_id)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [accountId, code, fullName, birthYear, gender, preferenceId]
+    `INSERT INTO khach_hang(tai_khoan_id, ma_thanh_vien, ho_ten, email, nam_sinh, gioi_tinh, so_thich_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [accountId, code, fullName, email, birthYear, gender, preferenceId]
   );
   return accountId;
 }
@@ -200,7 +216,7 @@ async function customerRoutes(request, response, method, path, body) {
   if (method === "POST" && path === "/auth/register") {
     const passwordConfirmation = requirePassword(body.matKhauXacNhan);
     if (body.matKhau !== passwordConfirmation) throw new HttpError(400, "Mật khẩu xác nhận chưa khớp");
-    const accountId = await transaction(client => createCustomerAccount(client, body));
+    const accountId = await transaction(client => createCustomerAccount(client, body, null, { allowIncompleteProfile: true }));
     const profile = await getProfile(accountId);
     json(response, 201, { token: createToken({ id: accountId, role: "customer" }), profile });
     return true;
@@ -214,14 +230,19 @@ async function customerRoutes(request, response, method, path, body) {
   if (method === "PATCH" && path === "/me") {
     const customer = await requireCustomer(request);
     const fullName = requireValue(body.hoTen, "Họ và tên", { min: 2, max: 150 });
+    const email = requireEmail(body.email);
     const birthYear = requireInteger(body.namSinh, "Năm sinh", 1900, new Date().getFullYear());
     const preferenceId = requireInteger(body.soThichId, "Sở thích");
     const gender = body.gioiTinh;
     if (!["nam", "nu", "khac", "khong_cung_cap"].includes(gender)) throw new HttpError(400, "Giới tính không hợp lệ");
+    const preference = await pool.query("SELECT id FROM nhom_so_thich WHERE id = $1 AND dang_su_dung", [preferenceId]);
+    if (!preference.rowCount) throw new HttpError(400, "Sở thích không tồn tại hoặc đã ngừng sử dụng");
+    const duplicateEmail = await pool.query("SELECT 1 FROM khach_hang WHERE lower(email) = lower($1) AND tai_khoan_id <> $2", [email, customer.id]);
+    if (duplicateEmail.rowCount) throw new HttpError(409, "Email này đã được sử dụng cho tài khoản khác");
     const result = await pool.query(
-      `UPDATE khach_hang SET ho_ten = $2, nam_sinh = $3, gioi_tinh = $4, so_thich_id = $5
+      `UPDATE khach_hang SET ho_ten = $2, email = $3, nam_sinh = $4, gioi_tinh = $5, so_thich_id = $6
         WHERE tai_khoan_id = $1`,
-      [customer.id, fullName, birthYear, gender, preferenceId]
+      [customer.id, fullName, email, birthYear, gender, preferenceId]
     );
     if (!result.rowCount) throw new HttpError(404, "Không tìm thấy hồ sơ khách hàng");
     json(response, 200, { profile: await getProfile(customer.id) });
@@ -390,13 +411,13 @@ async function customerRoutes(request, response, method, path, body) {
 
 async function listCustomers() {
   const { rows } = await pool.query(
-    `SELECT h.tai_khoan_id AS id, h.ma_thanh_vien AS code, h.ho_ten AS name,
+    `SELECT h.tai_khoan_id AS id, h.ma_thanh_vien AS code, h.ho_ten AS name, h.email,
             h.nam_sinh AS birth_year, h.gioi_tinh AS gender, h.so_thich_id AS "preferenceId",
             extract(year FROM current_date)::int - h.nam_sinh AS age,
             s.ten_nhom AS preference, t.ten_dang_nhap AS username,
             t.trang_thai AS status, h.ngay_cap_nhat AS "updatedAt"
        FROM khach_hang h JOIN tai_khoan t ON t.id = h.tai_khoan_id
-       JOIN nhom_so_thich s ON s.id = h.so_thich_id
+       LEFT JOIN nhom_so_thich s ON s.id = h.so_thich_id
       ORDER BY h.ngay_cap_nhat DESC, h.tai_khoan_id DESC`
   );
   return rows;
@@ -479,6 +500,7 @@ async function internalRoutes(request, response, method, path, body) {
     if (session.role !== "manager") throw new HttpError(403, "Chỉ Manager mới được sửa hồ sơ khách hàng");
     const customerId = requireInteger(customerUpdate[1], "Mã khách hàng");
     const fullName = requireValue(body.hoTen, "Họ và tên", { min: 2, max: 150 });
+    const email = requireEmail(body.email);
     const birthYear = requireInteger(body.namSinh, "Năm sinh", 1900, new Date().getFullYear());
     const preferenceId = requireInteger(body.soThichId, "Sở thích");
     const gender = body.gioiTinh;
@@ -493,10 +515,12 @@ async function internalRoutes(request, response, method, path, body) {
       if (!customer.rowCount) throw new HttpError(404, "Không tìm thấy hồ sơ khách hàng");
       const preference = await client.query("SELECT id FROM nhom_so_thich WHERE id = $1 AND dang_su_dung", [preferenceId]);
       if (!preference.rowCount) throw new HttpError(400, "Sở thích không tồn tại hoặc đã ngừng sử dụng");
+      const duplicateEmail = await client.query("SELECT 1 FROM khach_hang WHERE lower(email) = lower($1) AND tai_khoan_id <> $2", [email, customerId]);
+      if (duplicateEmail.rowCount) throw new HttpError(409, "Email này đã được sử dụng cho tài khoản khác");
       await client.query(
-        `UPDATE khach_hang SET ho_ten = $2, nam_sinh = $3, gioi_tinh = $4, so_thich_id = $5
+        `UPDATE khach_hang SET ho_ten = $2, email = $3, nam_sinh = $4, gioi_tinh = $5, so_thich_id = $6
           WHERE tai_khoan_id = $1`,
-        [customerId, fullName, birthYear, gender, preferenceId]
+        [customerId, fullName, email, birthYear, gender, preferenceId]
       );
     });
     json(response, 200, { message: "Đã cập nhật hồ sơ khách hàng" });
@@ -836,16 +860,16 @@ async function internalRoutes(request, response, method, path, body) {
       }
       const existingRequest = await client.query(
         `SELECT id FROM yeu_cau_admin_khach_hang
-          WHERE khach_hang_id = $1 AND loai = 'lock_customer' AND trang_thai = 'pending' LIMIT 1`,
-        [customerId]
+          WHERE khach_hang_id = $1 AND loai = $2 AND trang_thai = 'pending' LIMIT 1`,
+        [customerId, action]
       );
       if (existingRequest.rowCount) {
         throw new HttpError(409, isUnlock ? "Đã có yêu cầu mở khóa đang chờ Admin xử lý" : "Đã có yêu cầu khóa đang chờ Admin xử lý");
       }
       const result = await client.query(
         `INSERT INTO yeu_cau_admin_khach_hang(nguoi_yeu_cau_id, khach_hang_id, khach_hang_ten, loai, ly_do)
-         VALUES ($1, $2, $3, 'lock_customer', $4) RETURNING id`,
-        [session.id, customerId, target.rows[0].name, reason]
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [session.id, customerId, target.rows[0].name, action, reason]
       );
       return result.rows;
     });
